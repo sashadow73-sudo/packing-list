@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mute:#6b7280;--line:#e5e7eb;--pri:#0f766e;--pri2:#0d9488;--warn:#b45309;--bad:#b91c1c;--r:10px}
   *{box-sizing:border-box}
@@ -888,7 +889,9 @@ async function viewEditor(main) {
   }
 
   async function importExcel(f) {
-    const wb = XLSX.read(await f.arrayBuffer());
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf);
+    const pics = await excelImages(buf).catch(() => ({}));
     const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" });
     // find header row
     // order matters: each column is assigned to the first key it matches
@@ -915,7 +918,7 @@ async function viewEditor(main) {
       const row = data[r], qty = num(row[map.qty]);
       if (!qty) continue;
       const name = String(row[map.product_name] ?? "").trim() || String(row[map.product_name_cn] ?? "").trim() || last; last = name;
-      add.push({ product_name: name, product_name_cn: "", color: String(row[map.color] ?? ""), size: String(row[map.size] ?? ""), qty: Math.round(qty), unit_price_cny: num(row[map.unit_price_cny]), carton_no: String(row[map.carton_no] ?? ""), notes: String(row[map.notes] ?? "") });
+      add.push({ image_url: pics[r] || "", product_name: name, product_name_cn: "", color: String(row[map.color] ?? ""), size: String(row[map.size] ?? ""), qty: Math.round(qty), unit_price_cny: num(row[map.unit_price_cny]), carton_no: String(row[map.carton_no] ?? ""), notes: String(row[map.notes] ?? "") });
     }
     // lot info from an "Info" sheet, if present (made by Claude)
     const info = wb.Sheets["Info"];
@@ -925,7 +928,7 @@ async function viewEditor(main) {
     });
     rows = main.querySelector("#append").checked ? readRows().concat(add) : (readRows().filter(r => r.product_name || r.product_name_cn).concat(add));
     drawRows();
-    main.querySelector("#aimsg").textContent = `✅ Excel থেকে ${add.length} লাইন, মোট ${add.reduce((a, r) => a + r.qty, 0)} পিস এসেছে — মিলিয়ে নিয়ে "সেভ করুন" চাপুন। ছবি দিতে প্রতিটা লাইনের 📷 চাপুন।`;
+    main.querySelector("#aimsg").textContent = `✅ Excel থেকে ${add.length} লাইন, মোট ${add.reduce((a, r) => a + r.qty, 0)} পিস${add.some(r => r.image_url) ? `, ${add.filter(r => r.image_url).length}টা ছবি` : ""} এসেছে — মিলিয়ে নিয়ে "সেভ করুন" চাপুন। ছবি দিতে প্রতিটা লাইনের 📷 চাপুন।`;
   }
 
   main.querySelector("#ai").onclick = async (e) => {
@@ -1085,6 +1088,35 @@ async function viewReceive(main) {
     try { await q(sb.rpc("pl_save_receive", { p_lot: lot.id, p_items: its, p_extras: xs, p_mark_arrived: main.querySelector("#arr").checked })); S.lotTab = "pl"; go("lot"); }
     catch (ex) { err.textContent = ex.message; b.disabled = false; }
   };
+}
+
+// Excel-এর প্রথম শিটে বসানো ছবি পড়া: { সারি নম্বর (0 থেকে): ছবি }
+async function excelImages(buf) {
+  if (!window.JSZip) return {};
+  const zip = await JSZip.loadAsync(buf);
+  const P = new DOMParser(), xml = async (p) => { const f = zip.file(p); return f ? P.parseFromString(await f.async("text"), "application/xml") : null; };
+  const tags = (doc, n) => doc ? [...doc.getElementsByTagNameNS("*", n)] : [];
+  const RNS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+  const rattr = (el, n) => el.getAttributeNS(RNS, n) || el.getAttribute("r:" + n);
+  const resolve = (base, t) => { if (t.startsWith("/")) return t.slice(1); const parts = base.split("/").slice(0, -1); t.split("/").forEach(x => x === ".." ? parts.pop() : x !== "." && parts.push(x)); return parts.join("/"); };
+  const relsOf = (p) => p.replace(/([^/]+)$/, "_rels/$1.rels");
+  const wbx = await xml("xl/workbook.xml"), wbr = await xml("xl/_rels/workbook.xml.rels");
+  const rid = rattr(tags(wbx, "sheet")[0], "id");
+  const sheetRel = tags(wbr, "Relationship").find(r => r.getAttribute("Id") === rid); if (!sheetRel) return {};
+  const sheetPath = resolve("xl/workbook.xml", sheetRel.getAttribute("Target"));
+  const drel = tags(await xml(relsOf(sheetPath)), "Relationship").find(r => /\/drawing$/.test(r.getAttribute("Type"))); if (!drel) return {};
+  const drawPath = resolve(sheetPath, drel.getAttribute("Target"));
+  const dx = await xml(drawPath), media = {};
+  tags(await xml(relsOf(drawPath)), "Relationship").forEach(r => media[r.getAttribute("Id")] = resolve(drawPath, r.getAttribute("Target")));
+  const out = {};
+  for (const a of [...tags(dx, "twoCellAnchor"), ...tags(dx, "oneCellAnchor")]) {
+    const from = tags(a, "from")[0], blip = tags(a, "blip")[0]; if (!from || !blip) continue;
+    const row = +tags(from, "row")[0].textContent; if (out[row]) continue;
+    const path = media[rattr(blip, "embed")], file = path && zip.file(path); if (!file) continue;
+    const ext = path.split(".").pop().toLowerCase();
+    out[row] = await thumbData(new Blob([await file.async("uint8array")], { type: ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg" }));
+  }
+  return out;
 }
 
 // small product photo -> JPEG data URL (max 300px)
