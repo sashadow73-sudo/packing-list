@@ -199,6 +199,30 @@
   .stabs button.on .cnt{background:rgba(255,255,255,.2);color:#fff}
   .lockbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:12px;padding:12px 14px;margin-bottom:12px}
   .rb.lockb{background:#334155;color:#fff}
+  .fab{display:none}
+  /* মোবাইলে কম জায়গায় গোছানো ড্যাশবোর্ড */
+  @media (max-width:860px){
+    .topbar{padding:8px 12px}.topbar h1{font-size:18px}.hamb{width:36px;height:36px;font-size:18px}
+    main{padding:10px 12px 90px}
+    .stats{display:flex;overflow-x:auto;gap:8px;margin:0 0 10px;padding:2px 0 4px;scroll-snap-type:x mandatory;scrollbar-width:none}
+    .stats::-webkit-scrollbar{display:none}
+    .stat{flex:0 0 30%;min-width:104px;flex-direction:column;align-items:flex-start;gap:6px;padding:10px 12px;scroll-snap-align:start;border-radius:12px}
+    .stat .si{width:30px;height:30px;font-size:16px;border-radius:9px}
+    .stat .sv{font-size:19px}.stat .sl{font-size:11.5px;white-space:nowrap}
+    .brandbar{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+    .bcard{padding:10px 12px;border-radius:12px}.bcard .bn{font-size:15px}.bcard .bx{font-size:12px;margin-top:2px}
+    .stabs{flex-wrap:nowrap;overflow-x:auto;margin:0 0 10px;padding:0 0 2px;scrollbar-width:none}
+    .stabs::-webkit-scrollbar{display:none}
+    .stabs button{flex:0 0 auto;font-size:13px;padding:7px 12px}
+    .toolbar{padding:8px;gap:8px;margin-bottom:10px}
+    .toolbar input{flex:1 1 100%;min-width:0}
+    .toolbar select{flex:1;min-width:0;font-size:14px}
+    #newlot{display:none}
+    .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:20px;width:56px;height:56px;border-radius:50%;border:0;background:var(--pri);color:#fff;font-size:30px;line-height:1;box-shadow:0 8px 20px rgba(15,118,110,.4);z-index:15;cursor:pointer}
+    .lots{gap:10px}.lot{padding:12px 12px 10px 16px}.lot .ln{font-size:16px}.lot .meta{margin-top:8px;padding-top:8px}
+    .ltabs button{font-size:13.5px;padding:9px 10px}
+  }
+  @media print{.fab{display:none!important}}
   .xlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;padding:12px;margin-bottom:12px}
   .xlbar a.btn{text-decoration:none}
   .pgs{display:flex;flex-direction:column;gap:12px;margin-top:14px}
@@ -479,8 +503,10 @@ async function viewLots(main) {
     <select id="fs"><option value="">সব স্ট্যাটাস</option>${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
     ${isAdmin() ? `<button class="btn" id="newlot">➕ প্যাকিং লিস্ট যোগ করুন</button>` : ""}
   </div>
+  ${isAdmin() ? `<button class="fab no-print" id="fab" aria-label="প্যাকিং লিস্ট যোগ করুন">＋</button>` : ""}
   <div class="lots" id="list"></div>`;
   const nb = main.querySelector("#newlot"); if (nb) nb.onclick = () => go("new");
+  const fb = main.querySelector("#fab"); if (fb) fb.onclick = () => go("new");
   const draw = () => {
     const s = main.querySelector("#search").value.toLowerCase(), b = main.querySelector("#fb").value, st = main.querySelector("#fs").value;
     const sg = S.stage || "active";
