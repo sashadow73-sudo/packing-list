@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>প্যাকিং লিস্ট — Zapai & Kido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mute:#6b7280;--line:#e5e7eb;--pri:#0f766e;--pri2:#0d9488;--warn:#b45309;--bad:#b91c1c;--r:10px}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Noto Sans Bengali","Hind Siliguri",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+  header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;flex:1}
+  header .who{font-size:13px;opacity:.9}
+  nav{display:flex;gap:6px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+  nav button{background:none;border:0;padding:8px 12px;border-radius:8px;font:inherit;cursor:pointer;white-space:nowrap;color:var(--mute)}
+  nav button.on{background:#e6f4f1;color:var(--pri);font-weight:600}
+  main{max-width:1100px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+  h2{font-size:18px;margin:0 0 12px}
+  h3{font-size:15px;margin:16px 0 8px}
+  label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
+  input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .btn{font:inherit;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:var(--pri);color:#fff}
+  .btn:hover{background:var(--pri2)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.bad{background:#fff;color:var(--bad);border:1px solid #fecaca}
+  .btn.sm{padding:5px 9px;font-size:13px}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .sp{flex:1}
+  .mute{color:var(--mute);font-size:13px}
+  .err{color:var(--bad);font-size:14px;margin-top:8px;white-space:pre-wrap}
+  .ok{color:var(--pri);font-size:14px;margin-top:8px}
+  .warnbox{background:#fffbeb;border:1px solid #fde68a;color:var(--warn);padding:10px;border-radius:8px;font-size:13px;margin:8px 0}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:left;vertical-align:top}
+  th{background:#f9fafb;font-weight:600;font-size:13px}
+  td.n,th.n{text-align:right;white-space:nowrap}
+  .tw{overflow-x:auto}
+  table.edit input{padding:5px 6px;font-size:13px;min-width:60px}
+  .lots{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .lot{cursor:pointer}
+  .lot:hover{border-color:var(--pri)}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:#eef2ff;color:#3730a3}
+  .tag.ordered{background:#fef3c7;color:#92400e}.tag.shipped{background:#dbeafe;color:#1e40af}.tag.arrived{background:#dcfce7;color:#166534}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .thumbs img{height:80px;border-radius:6px;border:1px solid var(--line)}
+  .drop{border:2px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;background:#fafafa}
+  .drop.hot{border-color:var(--pri);background:#f0fdfa}
+  .center{max-width:380px;margin:60px auto}
+  .print-only{display:none}
+  .totals{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0;font-size:14px}
+  .totals b{font-size:16px}
+  @media print{
+    header,nav,.no-print,.btn{display:none!important}
+    body{background:#fff;font-size:12px}
+    main{padding:0;max-width:none}
+    .card{border:0;padding:0;margin:0 0 10px}
+    .print-only{display:block}
+    th,td{border:1px solid #999;padding:4px}
+    th{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .hide-print{display:none!important}
+  }
+  .pwwrap{position:relative;display:block}
+  .pwwrap input{padding-right:64px}
+  .pwtog{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--pri);cursor:pointer;user-select:none;padding:4px 6px;border-radius:6px}
+  .pwtog:hover{background:#e6f4f1}
+
+  /* ===== আধুনিক থিম ===== */
+  :root{--bg:#f3f5f8;--line:#e6e9ef;--pri:#0f766e;--pri2:#0d9488;--r:14px;--sh:0 1px 2px rgba(16,24,40,.04),0 4px 16px rgba(16,24,40,.06);--side:248px}
+  body{font-family:"Hind Siliguri","Noto Sans Bengali",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg)}
+  .card{border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:18px}
+  input,select,textarea{border-radius:10px;padding:9px 12px;transition:border-color .15s,box-shadow .15s}
+  input:focus,select:focus,textarea:focus{outline:0;border-color:var(--pri2);box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+  .btn{border-radius:10px;font-weight:500;transition:background .15s,transform .05s}
+  .btn:active{transform:translateY(1px)}
+  .shell{display:grid;grid-template-columns:var(--side) 1fr;min-height:100vh}
+  .side{background:linear-gradient(180deg,#0b3d3a 0%,#0f766e 100%);color:#e6fffb;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:18px 14px;z-index:30}
+  .brand-logo{display:flex;align-items:center;gap:10px;padding:4px 8px 20px;font-size:19px;font-weight:700;color:#fff}
+  .brand-logo .lg{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:20px}
+  .brand-logo small{display:block;font-size:12px;font-weight:400;opacity:.75}
+  .side .nav{display:flex;flex-direction:column;gap:4px}
+  .side .nav button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;color:#cdeee9;font:inherit;font-size:15px;padding:11px 12px;border-radius:10px;cursor:pointer;transition:background .15s,color .15s}
+  .side .nav button .ic{width:22px;text-align:center;font-size:17px}
+  .side .nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+  .side .nav button.on{background:#fff;color:var(--pri);font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+  .side .me{margin-top:auto;background:rgba(255,255,255,.1);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px}
+  .side .av{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--pri);display:grid;place-items:center;font-weight:700;flex:none}
+  .side .me .nm{font-size:14px;font-weight:600;color:#fff;line-height:1.2}
+  .side .me .rl{font-size:12px;opacity:.8}
+  .side .out{margin-top:10px;width:100%;background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:10px;padding:9px;font:inherit;cursor:pointer}
+  .side .out:hover{background:rgba(255,255,255,.2)}
+  .content{min-width:0;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px 24px;background:rgba(243,245,248,.85);backdrop-filter:blur(8px);position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
+  .topbar h1{font-size:21px;margin:0;font-weight:700;flex:1}
+  .topbar .date{color:var(--mute);font-size:13px}
+  .hamb{display:none;background:#fff;border:1px solid var(--line);border-radius:10px;width:40px;height:40px;font-size:20px;cursor:pointer}
+  main{max-width:1200px;width:100%;margin:0;padding:22px 24px}
+  .scrim{display:none}
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:16px;display:flex;gap:12px;align-items:center}
+  .stat .si{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex:none}
+  .stat .sv{font-size:24px;font-weight:700;line-height:1.1}
+  .stat .sl{font-size:13px;color:var(--mute)}
+  .si.t1{background:#ccfbf1}.si.t2{background:#e0e7ff}.si.t3{background:#fef3c7}.si.t4{background:#dbeafe}.si.t5{background:#dcfce7}
+  .brandbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:18px}
+  .bcard{border-radius:var(--r);padding:16px 18px;color:#fff;box-shadow:var(--sh)}
+  .bcard.zapai{background:linear-gradient(135deg,#0f766e,#14b8a6)}
+  .bcard.kido{background:linear-gradient(135deg,#7c3aed,#c084fc)}
+  .bcard .bn{font-size:17px;font-weight:700}.bcard .bx{opacity:.9;font-size:14px;margin-top:4px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:10px;box-shadow:var(--sh);margin-bottom:16px}
+  .toolbar input{flex:1;min-width:180px;border:0;background:#f6f7f9}
+  .toolbar select{width:auto;border:0;background:#f6f7f9}
+  .lots{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .lot{position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s,border-color .15s;padding:16px 16px 14px 20px}
+  .lot::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--pri)}
+  .lot.kido::before{background:#8b5cf6}
+  .lot:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(16,24,40,.1)}
+  .lot .ln{font-size:18px;font-weight:700}
+  .lot .meta{display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:14px}
+  .lot .meta b{font-size:16px}
+  .bchip{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:#ccfbf1;color:#0f766e}
+  .bchip.kido{background:#ede9fe;color:#6d28d9}
+  .tag{font-weight:600}
+  .empty{text-align:center;padding:40px 16px;color:var(--mute);background:#fff;border:1px dashed var(--line);border-radius:var(--r)}
+  .empty .ei{font-size:40px;margin-bottom:6px}
+  /* login */
+  .authbg{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 20% 10%,#99f6e4 0,transparent 40%),radial-gradient(circle at 90% 90%,#ddd6fe 0,transparent 45%),var(--bg)}
+  .authbg .center{margin:0;width:100%;max-width:400px;padding:28px}
+  .authbg .center h2{font-size:22px;text-align:center}
+  .authbg .center .btn{padding:11px}
+  @media (max-width:860px){
+    .shell{grid-template-columns:1fr}
+    .side{position:fixed;left:0;top:0;width:var(--side);transform:translateX(-100%);transition:transform .2s}
+    .shell.open .side{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}
+    .shell.open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:25}
+    .hamb{display:grid;place-items:center}
+    .topbar{padding:12px 14px}.topbar .date{display:none}
+    main{padding:14px}
+  }
+  @media print{ .side,.topbar,.scrim{display:none!important} .shell{display:block} .card{box-shadow:none} }
+  .langsw{display:inline-flex;background:#eef1f5;border-radius:10px;padding:3px;gap:2px}
+  .langsw button{border:0;background:none;font:inherit;font-size:13px;padding:5px 12px;border-radius:8px;cursor:pointer;color:var(--mute)}
+  .langsw button.on{background:#fff;color:var(--pri);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .langsw.dark{background:rgba(255,255,255,.12);display:flex}
+  .langsw.dark button{flex:1;color:#cdeee9}
+  .langsw.dark button.on{background:#fff;color:var(--pri)}
+  .authbg .langsw{display:flex;width:max-content;margin:-6px auto 14px}
+  .lots .card{margin:0}
+  .pimg{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;cursor:zoom-in;background:#f6f7f9}
+  .pimg.sm{width:40px;height:40px}
+  .pimg.ph{display:grid;place-items:center;color:var(--mute);font-size:20px;cursor:pointer}
+  .imgcell{position:relative;width:56px}
+  .imgcell .x{position:absolute;top:-6px;right:-6px;background:#fff;border:1px solid var(--line);border-radius:50%;width:20px;height:20px;font-size:11px;line-height:18px;text-align:center;cursor:pointer}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.75);display:grid;place-items:center;z-index:100;cursor:zoom-out}
+  .lightbox img{max-width:92vw;max-height:88vh;border-radius:12px;background:#fff}
+  @media print{.pimg{width:42px;height:42px;border-radius:4px}}
+  @media (max-width:860px){.stats{grid-template-columns:1fr 1fr;gap:10px}.stat{padding:12px}.stat .sv{font-size:20px}}
+  .chk-col,.chk-only{display:none}
+  body.chkprint .chk-col{display:table-cell;min-width:70px}
+  body.chkprint .chk-only{display:block;margin-top:14px}
+  body.chkprint .rcv-col, body.chkprint .rcv-only{display:none!important}
+  @media print{ body.chkprint .chk-col{border:1px solid #555;min-width:80px} body.chkprint h3, body.chkprint h3 + .tw{display:none} body.chkprint tr{page-break-inside:avoid} }
+  #psave:empty{display:none!important}
+  .ltabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:14px;box-shadow:var(--sh);overflow-x:auto}
+  .ltabs button{flex:1;min-width:max-content;border:0;background:none;font:inherit;font-size:15px;font-weight:600;color:var(--mute);padding:11px 16px;border-radius:10px;cursor:pointer;transition:background .15s,color .15s}
+  .ltabs button:hover{background:#f3f5f8;color:var(--ink)}
+  .ltabs button.on{background:var(--pri);color:#fff;box-shadow:0 4px 12px rgba(15,118,110,.25)}
+  .bigin{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;padding:14px}
+  .bigin label{font-size:14px;color:var(--ink);font-weight:600}
+  .bigin input{font-size:20px;font-weight:700;padding:10px 12px}
+  .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .stepper button{border:0;background:#f3f4f6;width:30px;height:34px;font-size:18px;cursor:pointer;color:var(--ink)}
+  .stepper button:hover{background:#e6f4f1;color:var(--pri)}
+  .stepper input{border:0;border-radius:0;width:56px;text-align:center;padding:6px 2px}
+  .mgnote{font-size:11px;text-align:center}
+  .stepper.off{opacity:.4}
+  #ptab tr.galt td{background:#f8fafc}
+  .c-bd{font-size:10.5px;line-height:1.3;margin-top:2px;white-space:nowrap}
+  .pc{display:inline-block;padding:2px 8px;border-radius:99px;font-weight:600}
+  .pc.low{background:#fee2e2;color:#b91c1c}.pc.mid{background:#fef3c7;color:#92400e}.pc.good{background:#dcfce7;color:#166534}
+  .stabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .stabs button{border:1px solid var(--line);background:#fff;font:inherit;font-size:14px;font-weight:600;color:var(--mute);padding:9px 14px;border-radius:99px;cursor:pointer}
+  .stabs button .cnt{display:inline-block;min-width:22px;padding:0 6px;margin-left:4px;border-radius:99px;background:#eef1f5;color:var(--ink);font-size:12px}
+  .stabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .stabs button.on .cnt{background:rgba(255,255,255,.2);color:#fff}
+  .lockbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+  .rb.lockb{background:#334155;color:#fff}
+  .pgs{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+  .pg{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+  .pg-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--line)}
+  .pg-head .pimg{width:60px;height:60px}
+  .pg-name{flex:1;min-width:180px;line-height:1.35}
+  .pg-name b{font-size:16px}
+  .pg-in{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+  .pg-in label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mute);margin:0}
+  .pg-in input{width:96px;font-weight:600}
+  .pg-in .stepper input{width:52px}
+  .pg-bd{font-size:12.5px;padding:8px 14px;border-bottom:1px dashed var(--line)}
+  .pg-t{font-size:14px}
+  .pg-t th{background:#fff;color:var(--mute);font-weight:500;font-size:12.5px}
+  .pg-t td{vertical-align:middle;padding:8px 10px}
+  .pg-t .ovr{width:90px;padding:6px 8px}
+  /* যেটায় কাজ চলছে সেটা আলাদা রঙে */
+  .pg{transition:border-color .15s,box-shadow .15s}
+  .pg:hover{border-color:#99f6e4}
+  .pg:focus-within{border:2px solid var(--pri);box-shadow:0 8px 24px rgba(15,118,110,.18)}
+  .pg:focus-within .pg-head{background:#ccfbf1}
+  .pg:focus-within .pg-bd{background:#f0fdfa}
+  .pg-t tbody tr:focus-within td, #rt tbody tr:focus-within td, #xt tr:focus-within td, #tbl tbody tr:focus-within td{background:#fef9c3}
+  .bigin:focus-within{border-color:var(--pri);box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+  .c-pct{font-size:11px;margin-top:2px}
+  .pg-hint{font-size:11px;color:var(--mute);min-height:14px;max-width:170px;line-height:1.25}
+  .syncl{display:flex;gap:8px;align-items:center;margin:12px 0 6px;font-size:14px;color:var(--ink)}
+  .syncl input{width:auto}
+  .rb{display:inline-block;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:99px;margin-right:6px}
+  .rb.ok{background:#dcfce7;color:#166534}.rb.bad{background:#fee2e2;color:#b91c1c}.rb.more{background:#e0e7ff;color:#3730a3}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ====== ভাষা / Language ======
+const LANG = (() => { try { return localStorage.getItem("pl_lang") || "bn"; } catch { return "bn"; } })();
+const LOC = () => LANG === "en" ? "en-GB" : "bn-BD";
+document.documentElement.lang = LANG;
+function setLang(l) { try { localStorage.setItem("pl_lang", l); } catch {} location.reload(); }
+function langSwitch(dark) { return `<div class="langsw notrans ${dark ? "dark" : ""}"><button data-lang="bn" class="${LANG === "bn" ? "on" : ""}">বাংলা</button><button data-lang="en" class="${LANG === "en" ? "on" : ""}">English</button></div>`; }
+function bindLang() {}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-lang]"); if (b) { e.preventDefault(); if (b.dataset.lang !== LANG) setLang(b.dataset.lang); } });
+const I18N = {"অর্ডার হয়েছে": "Ordered", "পথে আছে": "In transit", "পৌঁছেছে": "Arrived", "কোম্পানি অ্যাডমিন": "Company admin", "সুপার অ্যাডমিন": "Super admin", "এমপ্লয়ি": "Staff", "কর্মচারী": "Employee", "এই অ্যাকাউন্ট বন্ধ বা খুঁজে পাওয়া যায়নি": "This account is disabled or not found", "প্যাকিং লিস্ট — লগইন": "Packing List — Login", "পাসওয়ার্ড": "Password", "লগইন": "Login", "ID বা পাসওয়ার্ড ভুল": "Wrong ID or password", "প্রথমবার সেটআপ": "First-time setup", "এখনো কোনো অ্যাডমিন নেই। আপনার নিজের অ্যাডমিন অ্যাকাউন্ট বানান। এটা শুধু একবারই করা যাবে।": "There is no admin yet. Create your own admin account. This can only be done once.", "আপনার নাম": "Your name", "Employee ID (যেমন: admin)": "Employee ID (e.g. admin)", "পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)": "Password (at least 6 characters)", "অ্যাডমিন বানান": "Create admin", "প্যাকিং লিস্ট": "Packing List", "⎋ লগআউট": "⎋ Logout", "লগআউট": "Logout", "লোড হচ্ছে…": "Loading…", "ড্যাশবোর্ড": "Dashboard", "লট বিস্তারিত": "Lot details", "প্যাকিং লিস্ট যোগ করুন": "Add packing list", "লট এডিট": "Edit lot", "সেটিংস": "Settings", "মোট লট": "Total lots", "মোট পিস": "Total pieces", "🔍 লট নম্বর / সাপ্লায়ার খুঁজুন": "🔍 Search lot no. / supplier", "সব ব্র্যান্ড": "All brands", "সব স্ট্যাটাস": "All statuses", "➕ প্যাকিং লিস্ট যোগ করুন": "➕ Add packing list", "কোনো লট নেই।": "No lots yet.", " “প্যাকিং লিস্ট যোগ করুন” বোতাম চেপে শুরু করুন।": " Press “Add packing list” to start.", "“প্যাকিং লিস্ট যোগ করুন” বোতাম চেপে শুরু করুন।": "Press “Add packing list” to start.", "← সব লট": "← All lots", "🖨️ প্রিন্ট": "🖨️ Print", "🖨️ দাম সহ প্রিন্ট": "🖨️ Print with prices", "✏️ এডিট": "✏️ Edit", "মুছুন": "Delete", "প্যাকিং লিস্ট — লট": "Packing List — Lot", "ব্র্যান্ড:": "Brand:", "সাপ্লায়ার:": "Supplier:", "অর্ডার নং:": "Order no:", "তারিখ:": "Date:", "নোট:": "Note:", "মোট লাইন:": "Total lines:", "মোট পিস:": "Total pieces:", "পণ্য": "Product", "কালার": "Color", "সাইজ": "Size", "পরিমাণ": "Qty", "কার্টন": "Carton", "বিক্রয়মূল্য": "Sale price", "নোট": "Notes", "ছবি": "Photo", "ছবি যোগ করুন": "Add photo", "মোট": "Total", "পণ্য অনুযায়ী সারাংশ": "Summary by product", "পুরোপুরি মুছে ফেলবেন?": "delete completely?", "💰 প্রাইসিং (শুধু অ্যাডমিন দেখছেন)": "💰 Pricing (admins only)", "মোট ওজন (কেজি)": "Total weight (kg)", "ইউয়ান রেট (৳)": "Yuan rate (৳)", "(ডিফল্ট)": "(default)", "শিপিং প্রতি কেজি (৳)": "Shipping per kg (৳)", "লাভ %": "Profit %", "অন্যান্য খরচ (৳) — কাস্টমস, ভাড়া ইত্যাদি": "Other costs (৳) — customs, freight etc.", "হিসাব সেভ করুন": "Save calculation", "পণ্যের দাম:": "Goods cost:", "শিপিং + অন্যান্য:": "Shipping + other:", "মোট খরচ:": "Total cost:", "প্রতি পিস শিপিং:": "Shipping per piece:", "বিক্রি করলে মোট:": "Total if sold:", "আনুমানিক লাভ:": "Estimated profit:", "খরচ/পিস = (ইউয়ান দাম × রেট) + প্রতি পিস শিপিং। বিক্রয়মূল্য = খরচ × (১ + লাভ%), ৫ টাকায় রাউন্ড করা। নিজে দাম বসাতে চাইলে “নিজের দাম” ঘরে লিখুন।": "Cost/pc = (yuan price × rate) + shipping per piece. Sale price = cost × (1 + profit%), rounded to ৳5. To set your own price, type it in “Own price”.", "কালার/সাইজ": "Color/Size", "পিস": "pcs", "দাম (¥)": "Price (¥)", "খরচ/পিস": "Cost/pc", "নিজের দাম (৳)": "Own price (৳)", "লট এডিট —": "Edit lot —", "মাল মেলান": "Receive check", "📥 মাল মেলান": "📥 Receive check", "✅ সব মিলেছে": "✅ All matched", "পিস কম": "pcs short", "পিস বাড়তি": "pcs extra", "অর্ডার (চায়না):": "Ordered (China):", "পেয়েছি (BD):": "Received (BD):", "⚠️ কম:": "⚠️ Short:", "➕ বাড়তি:": "➕ Extra:", "📥 এখনো মাল মেলানো হয়নি": "📥 Not checked yet", "কম পাওয়া মালের দাম:": "Value of missing goods:", "— সাপ্লায়ারের কাছে ফেরত চাইতে পারেন।": "— you can ask the supplier for a refund.", "অর্ডার (চায়না)": "Ordered (China)", "পেয়েছি (BD)": "Received (BD)", "পার্থক্য": "Difference", "বাড়তি": "Extra", "← লটে ফিরুন": "← Back to lot", "📥 মাল মেলান —": "📥 Receive check —", "বাংলাদেশে প্রতিটা লাইনের কত পিস পেয়েছেন লিখুন। চায়নার অর্ডারের তথ্য বদলাবে না, পাশে আলাদা করে থাকবে।": "Enter how many pieces of each line arrived in Bangladesh. The China order details stay unchanged, shown side by side.", "✓ সব অর্ডার অনুযায়ী পেয়েছি": "✓ Received everything as ordered", "সব মুছে ফেলুন": "Clear all", "➕ বাড়তি / অন্য পণ্য": "➕ Extra / other products", "+ বাড়তি পণ্য যোগ": "+ Add extra product", "অর্ডারে ছিল না কিন্তু সাপ্লায়ার দিয়েছে (যেমন স্টক না থাকায় অন্য পণ্য), সেগুলো এখানে লিখুন।": "Products the supplier sent that weren't ordered (e.g. substitutes for out-of-stock items) go here.", "পণ্যের নাম": "Product name", "কোনো বাড়তি পণ্য নেই": "No extra products", "লটের অবস্থা \"পৌঁছেছে\" করে দিন": "Set lot status to \"Arrived\"", "অর্ডার:": "Ordered:", "পেয়েছি:": "Received:", "কম:": "Short:", "ফাঁকা:": "Blank:", "লাইনে কিছু লেখা নেই — এগুলো ০ পিস (পাওয়া যায়নি) ধরা হবে। ঠিক আছে?": "lines are blank — they will be saved as 0 pcs (not received). OK?", "বাড়তি:": "Extra:", "অন্তত একটা লাইনে পাওয়া পিস লিখুন": "Enter received pieces on at least one line", "অনুমতি নেই": "Not allowed", "প্যাকিং লিস্ট": "Packing list", "প্রাইসিং": "Pricing", "💱 এক্সচেঞ্জ রেট (১ ¥ = ? ৳)": "💱 Exchange rate (1 ¥ = ? ৳)", "🚚 শিপিং খরচ প্রতি কেজি (৳)": "🚚 Shipping cost per kg (৳)", "📈 লাভ % (সব পণ্যে)": "📈 Profit % (all products)", "লাভ % (কমান/বাড়ান)": "Profit % (adjust)", "কালার/সাইজ": "colors/sizes", "কালার / সাইজ": "Color / Size", "বিক্রয়মূল্য": "Sale price", "নিজের দাম": "Own price", "মোট লাভ": "Total profit", "ভিন্ন": "varies", "(নিজের দাম)": "(own price)", "খরচ/পিস =": "Cost/pc =", "⏳ মেলানো চলছে": "⏳ Checking in progress", "📋 চলমান সব": "📋 All active", "🚚 আসছে": "🚚 On the way", "📥 মাল এসেছে, কাজ চলছে": "📥 Arrived, in progress", "✅ সম্পন্ন (লক)": "✅ Completed (locked)", "🔒 সম্পন্ন": "🔒 Completed", "🔒 সম্পন্ন করে লক করুন": "🔒 Mark complete & lock", "এই লট সম্পন্ন ও লক করা": "This lot is completed and locked", "— কিছু বদলানো যাবে না।": "— nothing can be changed.", "🔓 আনলক করে এডিটের অনুমতি দিন": "🔓 Unlock to allow editing", "এডিট করতে সুপার অ্যাডমিনের অনুমতি লাগবে।": "Editing needs super admin permission.", "সব কাজ শেষ? লক করলে এই লটে আর কিছু বদলানো যাবে না (শুধু সুপার অ্যাডমিন আনলক করতে পারবেন)।": "All work done? After locking nothing in this lot can be changed (only the super admin can unlock).", "আনলক করবেন? তখন অ্যাডমিনরা আবার এডিট করতে পারবে। কাজ শেষে আবার লক করে দিন।": "Unlock? Admins will be able to edit again. Lock it again when done.", "আজ সব শেষ না হলে \"আংশিক সেভ\" চাপুন — ফাঁকা লাইনগুলো ফাঁকাই থাকবে, পরে এসে বাকিটা করবেন।": "Not finished today? Press \"Save progress\" — blank lines stay blank, finish the rest later.", "💾 আংশিক সেভ (পরে শেষ করব)": "💾 Save progress (finish later)", "✅ মেলানো শেষ": "✅ Checking finished", "✅ আংশিক সেভ হয়েছে — পরে এসে বাকিটা করতে পারবেন।": "✅ Progress saved — you can finish the rest later.", "শুধু সুপার অ্যাডমিন আনলক করতে পারবেন": "Only the super admin can unlock", "এই লট লক করা — এডিট করতে সুপার অ্যাডমিনের অনুমতি লাগবে": "This lot is locked — editing needs super admin permission", "লাইন": "lines", "ধরা হচ্ছে": "applied", "সাধারণ": "Default", "এই পণ্যের নিজস্ব লাভ": "Custom profit for this product", "ফাঁকা — মোট ওজন থেকে আন্দাজ": "Blank — estimated from total weight:", "গ্রাম": "g", "ফাঁকা — শিপিং ধরা হচ্ছে না": "Blank — no shipping counted", "লাভ/পিস": "Profit/pc", "🔗 একই পণ্যের সব কালার/সাইজে দাম, ওজন আর লাভ % একসাথে বসান": "🔗 Apply price, weight and profit % to all colors/sizes of the same product", "+ শিপিং": "+ shipping", "+ অন্যান্য": "+ other", "বিক্রয়মূল্য/পিস": "Sale price/pc", "নিজের দাম/পিস (৳)": "Own price/pc (৳)", "মোট লাভ (সব পিস)": "Total profit (all pcs)", "নিজের দামে আসল লাভ": "Actual profit at own price", "নিজস্ব": "custom", "সাধারণ": "default", "💾 লিখলেই নিজে থেকে সেভ হয়": "💾 Saves automatically as you type", "⏳ সেভ হচ্ছে…": "⏳ Saving…", "✅ সেভ হয়েছে": "✅ Saved", "✏️ পরিবর্তন হচ্ছে…": "✏️ Editing…", "❌ সেভ হয়নি:": "❌ Not saved:", "🖨️ মেলানোর কাগজ": "🖨️ Checking sheet", "পেয়েছি ✍️": "Received ✍️", "মন্তব্য ✍️": "Remarks ✍️", "✍️ প্রতিটা লাইনে কত পিস পেয়েছেন লিখুন। কম/বেশি/ভুল পণ্য হলে মন্তব্যে লিখুন। অর্ডারে নেই এমন পণ্য পেলে নিচের ফাঁকা লাইনে লিখুন।": "✍️ Write how many pieces arrived on each line. Note short/extra/wrong items in remarks. Write products that weren't ordered in the blank lines below.", "বাড়তি / অন্য পণ্য": "Extra / other products", "মন্তব্য": "Remarks", "মিলিয়েছেন: ____________________": "Checked by: ____________________", "তারিখ: ____________": "Date: ____________", "চেক করেছেন (অ্যাডমিন): ____________________": "Verified (admin): ____________________", "শিপিং খরচ প্রতি কেজি (৳)": "Shipping cost per kg (৳)", "সাধারণ লাভ % (সব পণ্যে)": "Default profit % (all products)", "মোট ওজন (কেজি) — ঐচ্ছিক": "Total weight (kg) — optional", "📥 বাংলাদেশে পাওয়া পিস দিয়ে হিসাব হচ্ছে।": "📥 Calculated on pieces received in Bangladesh.", "📦 মাল মেলানো হয়নি — অর্ডারের পিস দিয়ে হিসাব হচ্ছে।": "📦 Not checked yet — calculated on ordered pieces.", "প্রতিটা পণ্যের ওজন (গ্রাম/পিস) দিলে সেই পণ্যের শিপিং খরচ আলাদা হিসাব হবে। মোট ওজন দিলে, যেসব পণ্যের ওজন দেননি তাদের মধ্যে বাকি ওজন সমান ভাগ হবে।": "Enter each product's weight (grams/pc) to calculate its own shipping cost. If you enter a total weight, the remaining weight is split evenly across products without a weight.", "পণ্যের দাম (চায়না):": "Goods cost (China):", "শিপিং:": "Shipping:", "কেজি": "kg", "অন্যান্য:": "Other:", "ওজন (গ্রাম/পিস)": "Weight (g/pc)", "শিপিং/পিস": "Shipping/pc", "মোট লাভ": "Total profit", "গ্রাম": "grams", "💾 হিসাব সেভ করুন": "💾 Save calculation", "খরচ/পিস = ইউয়ান দাম × রেট + শিপিং/পিস (ওজন × প্রতি কেজি খরচ) + অন্যান্য খরচের ভাগ। বিক্রয়মূল্য = খরচ × (১ + লাভ%), ৫ টাকায় রাউন্ড করা। কোনো পণ্যের লাভ % ফাঁকা রাখলে সাধারণ লাভ % ধরা হবে। নিজে দাম বসাতে চাইলে “নিজের দাম” ঘরে লিখুন।": "Cost/pc = yuan price × rate + shipping/pc (weight × cost per kg) + share of other costs. Sale price = cost × (1 + profit%), rounded to ৳5. A blank profit % uses the default. To set your own price, type it in “Own price”.", "লট নম্বর": "Lot no.", "ট্র্যাকিং নম্বর": "Tracking no.", "ট্র্যাকিং নম্বর দিন": "Enter the tracking number", "যেমন: ZTO 7904…": "e.g. ZTO 7904…", "প্যাকিং লিস্ট — ট্র্যাকিং": "Packing List — Tracking", "🔍 ট্র্যাকিং নম্বর / সাপ্লায়ার / অর্ডার নং খুঁজুন": "🔍 Search tracking no. / supplier / order no.", "— পুরোপুরি মুছে ফেলবেন?": "— delete completely?", "ব্র্যান্ড": "Brand", "সাপ্লায়ার": "Supplier", "অর্ডার নম্বর": "Order no.", "📷 1688 স্ক্রিনশট বা Excel দিন": "📷 Add 1688 screenshots or Excel", "এখানে ছবি/Excel টেনে আনুন, অথবা ট্যাপ করে বেছে নিন": "Drag images/Excel here, or tap to choose", "একাধিক স্ক্রিনশট দেওয়া যাবে · লম্বা স্ক্রিনশটও চলবে": "Multiple screenshots allowed · long screenshots work too", "🤖 AI দিয়ে পড়ুন": "🤖 Read with AI", "আগের লাইনের সাথে যোগ করুন": "Add to existing lines", "লাইনগুলো চেক করুন": "Check the lines", "AI ভুল করতে পারে — সেভের আগে পরিমাণ, সাইজ আর কালার মিলিয়ে নিন।": "AI can make mistakes — check qty, size and color before saving.", "পণ্য (বাংলা/ইংরেজি)": "Product (Bangla/English)", "চাইনিজ নাম": "Chinese name", "+ লাইন যোগ": "+ Add line", "বাতিল": "Cancel", "✅ সেভ করুন": "✅ Save", "লাইন": "lines", "টা ছবি": " images", "(ছবিতে ট্যাপ করলে বাদ যাবে)": "(tap an image to remove it)", "Excel-এ কলাম চেনা যায়নি (数量 / 商品名称 / 尺码 খুঁজেছি)। ছবি দিয়ে চেষ্টা করুন বা ম্যানুয়ালি লিখুন।": "Couldn't recognise the Excel columns (looked for 数量 / 商品名称 / 尺码). Try images or type manually.", "Excel থেকে": "From Excel:", "লাইন এসেছে": "lines imported", "(চাইনিজ নাম ইংরেজিতে নিজে লিখে দিন)": "(write the Chinese names in English yourself)", "ছবি তৈরি হচ্ছে…": "Preparing images…", "AI পড়ছে": "AI is reading", "অংশ": "parts", "… ২০–৬০ সেকেন্ড লাগতে পারে": "… may take 20–60 seconds", "লাইন পাওয়া গেছে — মিলিয়ে দেখুন": "lines found — please check", "⚠️ AI-এর নোট:": "⚠️ AI notes:", "লট নম্বর দিন": "Enter a lot number", "অন্তত একটা লাইন দিন": "Add at least one line", "নতুন এমপ্লয়ি": "New employee", "নাম": "Name", "যেমন: emp01": "e.g. emp01", "কোম্পানি": "Company", "রোল": "Role", "সুপার অ্যাডমিন (সব কোম্পানি)": "Super admin (all companies)", "যোগ করুন": "Add", "এমপ্লয়ি: শুধু নিজের কোম্পানির লট দেখবে (দাম ছাড়া)। কোম্পানি অ্যাডমিন: নিজের কোম্পানির লট বানানো/এডিট আর দাম দেখা। সুপার অ্যাডমিন: সব কোম্পানি, এমপ্লয়ি আর সেটিংস। সুপার অ্যাডমিনের জন্য কোম্পানি লাগে না।": "Employee: sees only their company's lots (no prices). Company admin: creates/edits their company's lots and sees prices. Super admin: all companies, employees and settings. Super admins need no company.", "সব এমপ্লয়ি": "All employees", "অবস্থা": "Status", "সব": "All", "— বাছাই করুন —": "— choose —", "চালু": "Active", "বন্ধ": "Disabled", "আপনি": "You", "পাসওয়ার্ড বদল": "Change password", "বন্ধ করুন": "Disable", "চালু করুন": "Enable", "-এর নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর):": " — new password (at least 6 characters):", "পাসওয়ার্ড বদলানো হয়েছে": "Password changed", "মুছে ফেলবেন?": "— delete?", "প্রাইসিং ডিফল্ট": "Pricing defaults", "প্রতিটা লটে আলাদা করে বদলানো যায়; না বদলালে এগুলোই ব্যবহার হবে।": "Can be changed per lot; otherwise these are used.", "ইউয়ান রেট (১ ¥ = ? ৳)": "Yuan rate (1 ¥ = ? ৳)", "সেভ": "Save", "✅ সেভ হয়েছে": "✅ Saved", "👁 দেখুন": "👁 Show", "🙈 লুকান": "🙈 Hide", "টি লট": "lots", "লট": "Lot", "অ্যাডমিন আগেই আছে": "An admin already exists", "সুপার অ্যাডমিন আগেই আছে": "A super admin already exists", "লগইন করুন": "Please log in", "শুধু অ্যাডমিন": "Admins only", "শুধু সুপার অ্যাডমিন": "Super admin only", "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর": "Password must be at least 6 characters", "নিজেকে মুছতে পারবেন না": "You can't delete yourself", "Employee ID শুধু ইংরেজি অক্ষর/সংখ্যা (২-৩০)": "Employee ID: English letters/numbers only (2–30)", "কোম্পানি বাছাই করুন (Zapai বা Kido)": "Choose a company (Zapai or Kido)", "এই Employee ID আগেই আছে": "This Employee ID already exists", "শুধু অ্যাডমিন ছবি আপলোড করতে পারবেন": "Only admins can upload images", "কোনো ছবি পাওয়া যায়নি": "No images found", "AI কোনো টেবিল দেয়নি": "AI returned no table"};
+const BN_DIG = "০১২৩৪৫৬৭৮৯";
+const I18N_RX = Object.keys(I18N).sort((a, b) => b.length - a.length).map(k => [new RegExp("(?<![\\u0980-\\u09FF])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\u0980-\\u09FF])", "g"), I18N[k]]);
+function tr(str) {
+  if (LANG !== "en" || !str || !/[\u0980-\u09FF]/.test(str)) return str;
+  str = str.replace(/[০-৯](?=[০-৯]*টা)/g, d => BN_DIG.indexOf(d));
+  const t = str.trim();
+  let out = I18N[t] != null ? str.replace(t, I18N[t]) : str;
+  if (/[\u0980-\u09FF]/.test(out)) for (const [rx, v] of I18N_RX) { out = out.replace(rx, v); if (!/[\u0980-\u09FF]/.test(out)) break; }
+  return out.replace(/[০-৯]/g, d => BN_DIG.indexOf(d));
+}
+if (LANG === "en") {
+  document.title = "Packing List — Zapai & Kido";
+  const fix = (root) => {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let n; while ((n = w.nextNode())) { if (n.parentElement?.closest(".notrans,script,style")) continue; const v = tr(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
+    (root.querySelectorAll ? root.querySelectorAll("[placeholder],[title]") : []).forEach(el => { ["placeholder", "title"].forEach(a => { const v = el.getAttribute(a); if (v && /[\u0980-\u09FF]/.test(v)) el.setAttribute(a, tr(v)); }); });
+  };
+  new MutationObserver(ms => ms.forEach(m => { if (m.type === "characterData") { const v = tr(m.target.nodeValue); if (v !== m.target.nodeValue && !m.target.parentElement?.closest(".notrans")) m.target.nodeValue = v; } else m.addedNodes.forEach(nd => nd.nodeType === 3 ? (nd.parentElement?.closest(".notrans") || (nd.nodeValue = tr(nd.nodeValue))) : nd.nodeType === 1 && fix(nd)); }))
+    .observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  const _a = window.alert, _c = window.confirm, _p = window.prompt;
+  window.alert = (m) => _a(tr(String(m))); window.confirm = (m) => _c(tr(String(m))); window.prompt = (m, d) => _p(tr(String(m)), d);
+}
+</script>
+<script>
+// ====== CONFIG ======
+const SUPABASE_URL = "https://gmuehshdjujwisedlzjf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_6luAFfBFqhNTeXAfsz96hg_99ZjLbFx";
+const STAFF_DOMAIN = "staff.packinglist.local";
+// ====================
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $app = document.getElementById("app");
+const S = { me: null, tab: "lots", lotId: null, settings: null };
+
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = (v) => { const n = parseFloat(String(v ?? "").replace(/,/g, "")); return isFinite(n) ? n : 0; };
+const tk = (n) => "৳" + Math.round(n).toLocaleString("en-IN");
+const fmt = (n, d = 2) => (Math.round(n * 10 ** d) / 10 ** d).toLocaleString("en-IN");
+const STATUS = { ordered: "অর্ডার হয়েছে", shipped: "পথে আছে", arrived: "পৌঁছেছে" };
+const isAdmin = () => S.me?.role === "admin";
+const isSuper = () => isAdmin() && !S.me?.brand;
+const roleLabel = (p) => p.role === "admin" ? (p.brand ? "কোম্পানি অ্যাডমিন" : "সুপার অ্যাডমিন") : "কর্মচারী";
+
+async function fn(name, body) {
+  const { data, error } = await sb.functions.invoke(name, { body });
+  if (error) {
+    let msg = error.message;
+    try { const j = await error.context.json(); if (j?.error) msg = j.error; } catch {}
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+async function q(p) { const { data, error } = await p; if (error) throw new Error(error.message); return data; }
+
+// ---------- boot ----------
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  const prof = await sb.from("pl_profiles").select("*").eq("id", session.user.id).maybeSingle();
+  if (!prof.data || !prof.data.active) { await sb.auth.signOut(); return showLogin("এই অ্যাকাউন্ট বন্ধ বা খুঁজে পাওয়া যায়নি"); }
+  S.me = prof.data;
+  if (isAdmin()) S.settings = (await sb.from("pl_settings").select("*").eq("id", 1).single()).data;
+  render();
+}
+
+// ---------- login / setup ----------
+async function showLogin(msg = "") {
+  let hasAdmin = true;
+  try { hasAdmin = (await fn("pl-employees", { action: "status" })).hasAdmin; } catch {}
+  if (!hasAdmin) return showSetup();
+  $app.innerHTML = `
+  <div class="authbg"><div class="center card">${langSwitch()}
+    <h2>প্যাকিং লিস্ট — লগইন</h2>
+    <form id="f">
+      <label>Employee ID</label><input name="eid" autocomplete="username" required>
+      <div style="height:10px"></div>
+      <label>পাসওয়ার্ড</label><input name="pw" type="password" autocomplete="current-password" required>
+      <div style="height:14px"></div>
+      <button class="btn" style="width:100%">লগইন</button>
+      <div class="err">${esc(msg)}</div>
+    </form>
+  </div></div>`;
+  document.getElementById("f").onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target, b = f.querySelector("button"); b.disabled = true;
+    const eid = f.eid.value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+    const { error } = await sb.auth.signInWithPassword({ email: `${eid}@${STAFF_DOMAIN}`, password: f.pw.value });
+    b.disabled = false;
+    if (error) { f.querySelector(".err").textContent = "ID বা পাসওয়ার্ড ভুল"; return; }
+    boot();
+  };
+}
+
+function showSetup() {
+  $app.innerHTML = `
+  <div class="authbg"><div class="center card">${langSwitch()}
+    <h2>প্রথমবার সেটআপ</h2>
+    <p class="mute">এখনো কোনো অ্যাডমিন নেই। আপনার নিজের অ্যাডমিন অ্যাকাউন্ট বানান। এটা শুধু একবারই করা যাবে।</p>
+    <form id="f">
+      <label>আপনার নাম</label><input name="name" required>
+      <div style="height:10px"></div>
+      <label>Employee ID (যেমন: admin)</label><input name="eid" required>
+      <div style="height:10px"></div>
+      <label>পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)</label><input name="pw" type="password" required minlength="6">
+      <div style="height:14px"></div>
+      <button class="btn" style="width:100%">অ্যাডমিন বানান</button>
+      <div class="err"></div>
+    </form>
+  </div></div>`;
+  document.getElementById("f").onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target, b = f.querySelector("button"); b.disabled = true;
+    try {
+      await fn("pl-employees", { action: "bootstrap", employee_id: f.eid.value, password: f.pw.value, full_name: f.name.value });
+      const eid = f.eid.value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+      await sb.auth.signInWithPassword({ email: `${eid}@${STAFF_DOMAIN}`, password: f.pw.value });
+      boot();
+    } catch (err) { f.querySelector(".err").textContent = err.message; b.disabled = false; }
+  };
+}
+
+// ---------- shell ----------
+const TITLES = { lots: "ড্যাশবোর্ড", lot: "লট বিস্তারিত", new: "প্যাকিং লিস্ট যোগ করুন", edit: "লট এডিট", receive: "মাল মেলান", staff: "এমপ্লয়ি", settings: "সেটিংস" };
+function render() {
+  const tabs = [["lots", "📊", "ড্যাশবোর্ড"]];
+  if (isAdmin()) tabs.push(["new", "➕", "প্যাকিং লিস্ট যোগ করুন"]);
+  if (isSuper()) tabs.push(["staff", "👥", "এমপ্লয়ি"], ["settings", "⚙️", "সেটিংস"]);
+  const nm = S.me.full_name || S.me.employee_id;
+  const active = (k) => S.tab === k || (k === "lots" && (S.tab === "lot" || S.tab === "receive")) || (k === "new" && S.tab === "edit");
+  $app.innerHTML = `
+  <div class="shell" id="shell">
+    <aside class="side">
+      <div class="brand-logo"><span class="lg">📦</span><span>প্যাকিং লিস্ট<small>Zapai & Kido</small></span></div>
+      <div class="nav">${tabs.map(([k, ic, t]) => `<button data-t="${k}" class="${active(k) ? "on" : ""}"><span class="ic">${ic}</span>${t}</button>`).join("")}</div>
+      <div style="margin-top:auto">
+        <div style="margin-bottom:10px">${langSwitch(true)}</div>
+        <div class="me" style="margin-top:0"><span class="av">${esc(nm.trim().charAt(0).toUpperCase())}</span>
+          <div><div class="nm">${esc(nm)}</div><div class="rl">${roleLabel(S.me)}${S.me.brand ? " · " + esc(S.me.brand) : ""}</div></div></div>
+        <button class="out" id="logout">⎋ লগআউট</button>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+    <div class="content">
+      <div class="topbar no-print"><button class="hamb" id="hamb">☰</button><h1>${TITLES[S.tab] || ""}</h1><span class="date">${new Date().toLocaleDateString(LOC(), { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span></div>
+      <main id="main"><p class="mute">লোড হচ্ছে…</p></main>
+    </div>
+  </div>`;
+  document.getElementById("logout").onclick = async () => { await sb.auth.signOut(); S.me = null; showLogin(); };
+  const shell = document.getElementById("shell");
+  document.getElementById("hamb").onclick = () => shell.classList.add("open");
+  document.getElementById("scrim").onclick = () => shell.classList.remove("open");
+  $app.querySelectorAll(".side .nav button").forEach(b => b.onclick = () => go(b.dataset.t));
+  const main = document.getElementById("main");
+  const views = { lots: viewLots, lot: viewLot, receive: viewReceive, new: viewEditor, edit: viewEditor, ...(isSuper() ? { staff: viewStaff, settings: viewSettings } : {}) };
+  (views[S.tab] || viewLots)(main).catch(e => main.innerHTML = `<div class="err">${esc(e.message)}</div>`);
+}
+function lockBanner(lot) {
+  if (!lot.locked) return "";
+  return `<div class="lockbar no-print">🔒 <b>এই লট সম্পন্ন ও লক করা</b><span class="mute">${lot.locked_at ? " · " + new Date(lot.locked_at).toLocaleDateString(LOC()) : ""} — কিছু বদলানো যাবে না।</span><span class="sp"></span>
+    ${isSuper() ? `<button class="btn sm" id="unlock" style="background:#b45309">🔓 আনলক করে এডিটের অনুমতি দিন</button>` : `<span class="mute">এডিট করতে সুপার অ্যাডমিনের অনুমতি লাগবে।</span>`}</div>`;
+}
+function bindLock(main, lot) {
+  const l = main.querySelector("#lock"), u = main.querySelector("#unlock");
+  if (l) l.onclick = async () => {
+    if (!confirm("সব কাজ শেষ? লক করলে এই লটে আর কিছু বদলানো যাবে না (শুধু সুপার অ্যাডমিন আনলক করতে পারবেন)।")) return;
+    try { await q(sb.rpc("pl_set_lock", { p_lot: lot.id, p_lock: true })); render(); } catch (e) { alert(e.message); }
+  };
+  if (u) u.onclick = async () => {
+    if (!confirm("আনলক করবেন? তখন অ্যাডমিনরা আবার এডিট করতে পারবে। কাজ শেষে আবার লক করে দিন।")) return;
+    try { await q(sb.rpc("pl_set_lock", { p_lot: lot.id, p_lock: false })); render(); } catch (e) { alert(e.message); }
+  };
+}
+function lotTabs(active) {
+  const t = [["pl", "📋", "প্যাকিং লিস্ট"], ["rcv", "📥", "মাল মেলান"]];
+  if (isAdmin()) t.push(["price", "💰", "প্রাইসিং"]);
+  return `<div class="ltabs no-print">${t.map(([k, ic, n]) => `<button data-lt="${k}" class="${active === k ? "on" : ""}">${ic} ${n}</button>`).join("")}</div>`;
+}
+function bindLotTabs(main) {
+  main.querySelectorAll("[data-lt]").forEach(b => b.onclick = () => {
+    const k = b.dataset.lt;
+    if (k === "rcv") return go("receive");
+    S.lotTab = k; if (S.tab !== "lot") return go("lot");
+    main.querySelectorAll("[data-lt]").forEach(x => x.classList.toggle("on", x === b));
+    main.querySelector("#pl").style.display = k === "pl" ? "" : "none";
+    const pr = main.querySelector("#pricing"); if (pr) pr.style.display = k === "price" ? "" : "none";
+    main.querySelectorAll(".pl-only").forEach(e => e.style.display = k === "pl" ? "" : "none");
+  });
+}
+function go(tab, lotId) { S.tab = tab; if (lotId !== undefined && lotId !== S.lotId) { S.lotId = lotId; S.lotTab = "pl"; } render(); window.scrollTo(0, 0); }
+
+// ---------- lots list (dashboard) ----------
+async function viewLots(main) {
+  const lots = await q(sb.from("pl_lots").select("*, pl_lot_items(qty,received_qty,line_type)").order("created_at", { ascending: false }));
+  const pcs = (l) => l.pl_lot_items.reduce((a, i) => a + i.qty, 0);
+  const stage = (l) => l.locked ? "done" : (l.status === "arrived" || l.received_at) ? "work" : "coming";
+  const rcvBadge = (l) => {
+    if (!l.received_at) {
+      const ord = l.pl_lot_items.filter(i => i.line_type !== "extra"), filled = ord.filter(i => i.received_qty != null).length;
+      return filled ? `<span class="rb more">⏳ মেলানো চলছে ${filled}/${ord.length} লাইন</span>` : "";
+    }
+    const ord = l.pl_lot_items.filter(i => i.line_type !== "extra");
+    const short = ord.reduce((a, i) => a + Math.max(0, i.qty - (i.received_qty ?? 0)), 0);
+    const extra = l.pl_lot_items.reduce((a, i) => a + (i.line_type === "extra" ? (i.received_qty || 0) : Math.max(0, (i.received_qty ?? 0) - i.qty)), 0);
+    if (!short && !extra) return `<span class="rb ok">✅ সব মিলেছে</span>`;
+    return (short ? `<span class="rb bad">⚠️ ${short} পিস কম</span>` : "") + (extra ? `<span class="rb more">➕ ${extra} পিস বাড়তি</span>` : "");
+  };
+  const sum = (arr) => arr.reduce((a, l) => a + pcs(l), 0);
+  const by = (st) => lots.filter(l => l.status === st).length;
+  const brands = isSuper() ? ["Zapai", "Kido"] : [];
+  main.innerHTML = `
+  <div class="stats">
+    <div class="stat"><span class="si t1">📦</span><div><div class="sv">${lots.length}</div><div class="sl">মোট লট</div></div></div>
+    <div class="stat"><span class="si t2">👕</span><div><div class="sv">${sum(lots).toLocaleString("en-IN")}</div><div class="sl">মোট পিস</div></div></div>
+    <div class="stat"><span class="si t3">🧾</span><div><div class="sv">${by("ordered")}</div><div class="sl">অর্ডার হয়েছে</div></div></div>
+    <div class="stat"><span class="si t4">🚚</span><div><div class="sv">${by("shipped")}</div><div class="sl">পথে আছে</div></div></div>
+    <div class="stat"><span class="si t5">✅</span><div><div class="sv">${by("arrived")}</div><div class="sl">পৌঁছেছে</div></div></div>
+  </div>
+  ${brands.length ? `<div class="brandbar">${brands.map(b => { const L = lots.filter(l => l.brand === b); return `<div class="bcard ${b.toLowerCase()}"><div class="bn">${b}</div><div class="bx">${L.length} টি লট · ${sum(L).toLocaleString("en-IN")} পিস</div></div>`; }).join("")}</div>` : ""}
+  <div class="stabs no-print">${[["active", "📋 চলমান সব"], ["coming", "🚚 আসছে"], ["work", "📥 মাল এসেছে, কাজ চলছে"], ["done", "✅ সম্পন্ন (লক)"]].map(([k, n]) =>
+    `<button data-st="${k}" class="${(S.stage || "active") === k ? "on" : ""}">${n} <span class="cnt">${k === "active" ? lots.filter(l => !l.locked).length : lots.filter(l => stage(l) === k).length}</span></button>`).join("")}</div>
+  <div class="toolbar no-print">
+    <input id="search" placeholder="🔍 ট্র্যাকিং নম্বর / সাপ্লায়ার / অর্ডার নং খুঁজুন">
+    <select id="fb" style="${isSuper() ? "" : "display:none"}"><option value="">সব ব্র্যান্ড</option><option>Zapai</option><option>Kido</option></select>
+    <select id="fs"><option value="">সব স্ট্যাটাস</option>${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
+    ${isAdmin() ? `<button class="btn" id="newlot">➕ প্যাকিং লিস্ট যোগ করুন</button>` : ""}
+  </div>
+  <div class="lots" id="list"></div>`;
+  const nb = main.querySelector("#newlot"); if (nb) nb.onclick = () => go("new");
+  const draw = () => {
+    const s = main.querySelector("#search").value.toLowerCase(), b = main.querySelector("#fb").value, st = main.querySelector("#fs").value;
+    const sg = S.stage || "active";
+    const rows = lots.filter(l => (sg === "active" ? !l.locked : stage(l) === sg) && (!b || l.brand === b) && (!st || l.status === st) && (!s || (l.lot_no + " " + l.supplier + " " + l.order_no).toLowerCase().includes(s)));
+    const box = main.querySelector("#list");
+    box.style.display = rows.length ? "" : "block";
+    box.innerHTML = rows.length ? rows.map(l => `<div class="card lot ${l.brand.toLowerCase()}" data-id="${l.id}">
+        <div class="row"><span class="ln">🚚 ${esc(l.lot_no)}</span><span class="sp"></span>${l.locked ? `<span class="rb lockb">🔒 সম্পন্ন</span>` : `<span class="tag ${l.status}">${STATUS[l.status]}</span>`}</div>
+        <div style="margin-top:8px"><span class="bchip ${l.brand.toLowerCase()}">${esc(l.brand)}</span>${l.supplier ? ` <span class="mute">· ${esc(l.supplier)}</span>` : ""}</div>
+        ${rcvBadge(l) ? `<div style="margin-top:8px">${rcvBadge(l)}</div>` : ""}
+        <div class="meta"><span><b>${pcs(l)}</b> পিস</span><span><b>${l.pl_lot_items.filter(i => i.line_type !== "extra").length}</b> লাইন</span><span class="sp"></span><span class="mute">${new Date(l.created_at).toLocaleDateString(LOC())}</span></div>
+      </div>`).join("")
+      : `<div class="empty"><div class="ei">📭</div>কোনো লট নেই।${isAdmin() ? " “প্যাকিং লিস্ট যোগ করুন” বোতাম চেপে শুরু করুন।" : ""}</div>`;
+    main.querySelectorAll(".lot").forEach(c => c.onclick = () => go("lot", c.dataset.id));
+  };
+  ["#search", "#fb", "#fs"].forEach(id => main.querySelector(id).oninput = draw);
+  main.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.stage = b.dataset.st; main.querySelectorAll("[data-st]").forEach(x => x.classList.toggle("on", x === b)); draw(); });
+  draw();
+}
+
+// ---------- pricing ----------
+// খরচ/পিস = ইউয়ান দাম × রেট + (ওজন গ্রাম ÷ ১০০০ × প্রতি কেজি শিপিং) + অন্যান্য খরচের ভাগ
+function pricing(items, costs, lotCost, settings, received) {
+  const rate = lotCost?.cny_rate ?? settings.cny_rate;
+  const perKg = lotCost?.shipping_per_kg ?? settings.shipping_per_kg;
+  const margin = lotCost?.margin_pct ?? settings.margin_pct;
+  const weight = num(lotCost?.total_weight_kg);
+  const extra = num(lotCost?.extra_cost_bdt);
+  const Q = (i) => received ? (i.received_qty ?? 0) : (i.line_type === "extra" ? (i.received_qty ?? 0) : num(i.qty));
+  const totalQ = items.reduce((a, i) => a + Q(i), 0);
+  const known = items.reduce((a, i) => { const w = costs[i.id]?.weight_g; return a + (w != null && w !== "" ? num(w) * Q(i) / 1000 : 0); }, 0);
+  const noW = items.filter(i => costs[i.id]?.weight_g == null || costs[i.id]?.weight_g === "");
+  const noWQ = noW.reduce((a, i) => a + Q(i), 0);
+  const restKgPerPc = weight > known && noWQ ? (weight - known) / noWQ : 0;   // মোট ওজন দিলে, যাদের ওজন নেই তাদের মধ্যে ভাগ
+  const extraPerPc = totalQ ? extra / totalQ : 0;
+  const rows = items.map(i => {
+    const c = costs[i.id] || {};
+    const cny = num(c.unit_price_cny);
+    const hasW = c.weight_g != null && c.weight_g !== "";
+    const kgPc = hasW ? num(c.weight_g) / 1000 : restKgPerPc;
+    const ship = kgPc * perKg;
+    const m = c.margin_pct != null && c.margin_pct !== "" ? num(c.margin_pct) : margin;
+    const cost = cny * rate + ship + extraPerPc;
+    const sell = c.sell_price_override != null ? num(c.sell_price_override) : Math.ceil(cost * (1 + m / 100) / 5) * 5;
+    return { item: i, q: Q(i), cny, weight_g: hasW ? num(c.weight_g) : null, kgPc, ship, margin: m, ownMargin: c.margin_pct, cost, sell, override: c.sell_price_override };
+  });
+  const goodsBdt = items.reduce((a, i) => a + num(costs[i.id]?.unit_price_cny) * rate * (i.line_type === "extra" ? 0 : num(i.qty)), 0); // চায়নায় যা পরিশোধ
+  const shipTotal = rows.reduce((a, r) => a + r.ship * r.q, 0);
+  const totalKg = rows.reduce((a, r) => a + r.kgPc * r.q, 0);
+  const totalCost = goodsBdt + shipTotal + extra;
+  const totalSell = rows.reduce((a, r) => a + r.sell * r.q, 0);
+  return { rate, perKg, margin, weight, extra, extraPerPc, totalQ, totalKg, shipTotal, rows, goodsBdt, totalCost, totalSell, received };
+}
+
+// ---------- lot detail ----------
+async function viewLot(main) {
+  const lot = await q(sb.from("pl_lots").select("*").eq("id", S.lotId).single());
+  const items = await q(sb.from("pl_lot_items").select("*").eq("lot_id", lot.id).order("position"));
+  const totalQty = items.reduce((a, i) => a + i.qty, 0);
+  const R = rcvStats(lot, items);
+  let P = null, lotCost = null, costs = {};
+  if (isAdmin()) {
+    lotCost = (await sb.from("pl_lot_costs").select("*").eq("lot_id", lot.id).maybeSingle()).data;
+    const ic = items.length ? await q(sb.from("pl_item_costs").select("*").in("item_id", items.map(i => i.id))) : [];
+    ic.forEach(c => costs[c.item_id] = c);
+    P = pricing(items, costs, lotCost, S.settings, !!lot.received_at);
+  }
+  // summary by product
+  const byProd = {};
+  const prodImg = {};
+  items.forEach(i => { const k = i.product_name || i.product_name_cn || "—"; byProd[k] = (byProd[k] || 0) + i.qty; if (i.image_url && !prodImg[k]) prodImg[k] = i.image_url; });
+
+  main.innerHTML = `
+  <div class="row no-print" style="margin-bottom:12px">
+    <button class="btn ghost sm" id="back">← সব লট</button><span class="sp"></span>
+    <span class="pl-only row" style="gap:8px">
+    <button class="btn ghost sm" id="printC">🖨️ মেলানোর কাগজ</button>
+    <button class="btn sm" id="print">🖨️ প্রিন্ট</button>
+    ${isAdmin() ? `<button class="btn ghost sm" id="printP">🖨️ দাম সহ প্রিন্ট</button>` : ""}</span>
+    ${isAdmin() && !lot.locked ? `<button class="btn ghost sm" id="edit">✏️ এডিট</button><button class="btn bad sm" id="del">মুছুন</button>` : ""}
+    ${isAdmin() && !lot.locked ? `<button class="btn sm" id="lock" style="background:#334155">🔒 সম্পন্ন করে লক করুন</button>` : ""}
+  </div>
+  ${lockBanner(lot)}
+  ${lotTabs(S.lotTab === "price" && isAdmin() ? "price" : "pl")}
+  <div class="card" id="pl" style="${S.lotTab === "price" && isAdmin() ? "display:none" : ""}">
+    <div class="row">
+      <h2 style="margin:0">প্যাকিং লিস্ট — ট্র্যাকিং ${esc(lot.lot_no)}</h2><span class="sp"></span>
+      ${isAdmin() ? `<select id="status" class="no-print" style="width:auto">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${lot.status === k ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<span class="tag ${lot.status}">${STATUS[lot.status]}</span>`}
+    </div>
+    <div class="mute" style="margin:6px 0 10px">ব্র্যান্ড: ${esc(lot.brand)}${lot.supplier ? " · সাপ্লায়ার: " + esc(lot.supplier) : ""}${lot.order_no ? " · অর্ডার নং: " + esc(lot.order_no) : ""} · তারিখ: ${new Date(lot.created_at).toLocaleDateString(LOC())}</div>
+    ${lot.notes ? `<div class="mute" style="margin-bottom:8px">নোট: ${esc(lot.notes)}</div>` : ""}
+    <div class="totals"><span>মোট লাইন: <b>${items.length - R.extraLines}</b></span><span>অর্ডার (চায়না): <b>${totalQty}</b> পিস</span>
+      ${R.done ? `<span class="rcv-only">পেয়েছি (BD): <b>${R.received}</b> পিস</span>${R.short ? `<span class="rb bad rcv-only">⚠️ কম: <b>${R.short}</b> পিস</span>` : ""}${R.extra ? `<span class="rb more rcv-only">➕ বাড়তি: <b>${R.extra}</b> পিস</span>` : ""}${!R.short && !R.extra ? `<span class="rb ok rcv-only">✅ সব মিলেছে</span>` : ""}` : `<span class="mute rcv-only">📥 এখনো মাল মেলানো হয়নি</span>`}</div>
+    ${R.done && isAdmin() && R.short ? `<div class="warnbox rcv-only">কম পাওয়া মালের দাম: <b>¥${fmt(items.reduce((a, i) => a + (i.line_type === "extra" ? 0 : Math.max(0, i.qty - (i.received_qty ?? 0)) * num(costs[i.id]?.unit_price_cny)), 0))}</b> — সাপ্লায়ারের কাছে ফেরত চাইতে পারেন।</div>` : ""}
+    <div class="tw"><table>
+      <thead><tr><th>#</th><th>ছবি</th><th>পণ্য</th><th>কালার</th><th>সাইজ</th><th class="n">অর্ডার (চায়না)</th>${R.done ? `<th class="n rcv-col">পেয়েছি (BD)</th><th class="n rcv-col">পার্থক্য</th>` : ""}<th>কার্টন</th><th class="chk-col">পেয়েছি ✍️</th><th class="chk-col">মন্তব্য ✍️</th>
+        <th class="price-col" style="display:none">বিক্রয়মূল্য</th><th>নোট</th></tr></thead>
+      <tbody>${items.map((i, n) => `<tr>
+        <td>${n + 1}</td>
+        <td>${i.image_url ? `<img class="pimg" src="${esc(i.image_url)}" alt="">` : ""}</td>
+        <td>${esc(i.product_name)}${i.product_name_cn ? `<div class="mute">${esc(i.product_name_cn)}</div>` : ""}</td>
+        <td>${esc(i.color)}</td><td>${esc(i.size)}</td><td class="n">${i.line_type === "extra" ? `<span class="rb more">বাড়তি</span>` : `<b>${i.qty}</b>`}</td>${R.done ? `<td class="n rcv-col"><b>${i.received_qty ?? 0}</b></td><td class="n rcv-col">${diffHtml(i)}</td>` : ""}<td>${esc(i.carton_no)}</td><td class="chk-col"></td><td class="chk-col"></td>
+        <td class="n price-col" style="display:none">${P ? tk(P.rows[n].sell) : ""}</td>
+        <td>${esc(i.notes)}</td></tr>`).join("")}
+      </tbody>
+      <tfoot><tr><th colspan="5">মোট</th><th class="n">${totalQty}</th>${R.done ? `<th class="n rcv-col">${R.received}</th><th class="n rcv-col">${R.received - totalQty > 0 ? "+" : ""}${R.received - totalQty}</th>` : ""}<th colspan="3"></th></tr></tfoot>
+    </table></div>
+    <div class="chk-only"><div class="warnbox">✍️ প্রতিটা লাইনে কত পিস পেয়েছেন লিখুন। কম/বেশি/ভুল পণ্য হলে মন্তব্যে লিখুন। অর্ডারে নেই এমন পণ্য পেলে নিচের ফাঁকা লাইনে লিখুন।</div>
+      <table><thead><tr><th style="width:40%">বাড়তি / অন্য পণ্য</th><th>কালার</th><th>সাইজ</th><th>পিস</th><th>মন্তব্য</th></tr></thead><tbody>${"<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>".repeat(5)}</tbody></table>
+      <div class="row" style="margin-top:28px;gap:40px"><span>মিলিয়েছেন: ____________________</span><span>তারিখ: ____________</span><span>চেক করেছেন (অ্যাডমিন): ____________________</span></div></div>
+    <h3>পণ্য অনুযায়ী সারাংশ</h3>
+    <div class="tw"><table><thead><tr><th>ছবি</th><th>পণ্য</th><th class="n">মোট পিস</th></tr></thead>
+      <tbody>${Object.entries(byProd).map(([k, v]) => `<tr><td>${prodImg[k] ? `<img class="pimg sm" src="${esc(prodImg[k])}" alt="">` : ""}</td><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join("")}</tbody></table></div>
+  </div>
+  ${isAdmin() ? pricingHtml(P, lotCost, S.lotTab !== "price") : ""}`;
+
+  main.querySelector("#back").onclick = () => go("lots");
+  bindLotTabs(main);
+  bindLock(main, lot);
+  if (lot.locked) { main.querySelectorAll("#pricing input, #pricing button, #status").forEach(e => e.disabled = true); }
+  if (S.lotTab === "price" && isAdmin()) main.querySelectorAll(".pl-only").forEach(e => e.style.display = "none");
+  main.querySelector("#printC").onclick = () => {
+    main.querySelectorAll(".price-col").forEach(e => e.style.display = "none"); main.querySelector("#pl").style.display = ""; document.getElementById("pricing")?.classList.add("hide-print");
+    document.body.classList.add("chkprint"); window.print(); setTimeout(() => document.body.classList.remove("chkprint"), 500);
+  };
+  main.querySelector("#print").onclick = () => { main.querySelectorAll(".price-col").forEach(e => e.style.display = "none"); main.querySelector("#pl").style.display = ""; document.getElementById("pricing")?.classList.add("hide-print"); window.print(); };
+  if (!isAdmin()) return;
+  main.querySelector("#printP").onclick = () => { main.querySelectorAll(".price-col").forEach(e => e.style.display = ""); main.querySelector("#pl").style.display = ""; document.getElementById("pricing")?.classList.add("hide-print"); window.print(); setTimeout(() => main.querySelectorAll(".price-col").forEach(e => e.style.display = "none"), 500); };
+  const eb = main.querySelector("#edit"); if (eb) eb.onclick = () => go("edit", lot.id);
+  const db = main.querySelector("#del"); if (db) db.onclick = async () => {
+    if (!confirm(`${lot.lot_no} — পুরোপুরি মুছে ফেলবেন?`)) return;
+    await q(sb.from("pl_lots").delete().eq("id", lot.id)); go("lots");
+  };
+  main.querySelector("#status").onchange = async (e) => { await q(sb.from("pl_lots").update({ status: e.target.value }).eq("id", lot.id)); };
+  bindPricing(main, lot, items, costs, lotCost);
+}
+
+function groupRows(rows) { const out = [], m = {}; rows.forEach(r => { const k = gkey(r.item) || r.item.id; if (!m[k]) { m[k] = { key: k, rows: [] }; out.push(m[k]); } m[k].rows.push(r); }); return out; }
+const gkey = (i) => (i.product_name_cn || i.product_name || "").trim().toLowerCase();
+function costBd(r, P) { return `¥${fmt(r.cny)}×${fmt(P.rate)} = ${tk(r.cny * P.rate)}<br>+ শিপিং ${tk(r.ship)}${P.extraPerPc ? ` + অন্যান্য ${tk(P.extraPerPc)}` : ""}`; }
+function pcClass(r) { if (!r.cost) return ""; const p = (r.sell / r.cost - 1) * 100; return p < 10 ? "low" : p < 25 ? "mid" : "good"; }
+// লাভ %-এর নিচের লেখা: নিজের দাম দিলে আসল লাভ % দেখায়
+function mgNote(r) {
+  if (r.override != null) return `<b style="color:${r.sell >= r.cost ? "var(--pri)" : "var(--bad)"}">নিজের দামে আসল লাভ ${r.cost ? Math.round((r.sell / r.cost - 1) * 100) : 0}%</b>`;
+  return r.ownMargin != null && r.ownMargin !== "" ? "নিজস্ব" : "সাধারণ";
+}
+function pricingHtml(P, lc, hidden) {
+  return `
+  <div class="card no-print" id="pricing" style="${hidden ? "display:none" : ""}">
+    <h2>💰 প্রাইসিং (শুধু অ্যাডমিন দেখছেন)</h2>
+    <div class="bigin">
+      <div><label>💱 এক্সচেঞ্জ রেট (১ ¥ = ? ৳)</label><input id="r" type="number" step="0.01" value="${lc?.cny_rate ?? S.settings.cny_rate}"></div>
+      <div><label>🚚 শিপিং খরচ প্রতি কেজি (৳)</label><input id="k" type="number" step="0.01" value="${lc?.shipping_per_kg ?? S.settings.shipping_per_kg}"></div>
+      <div><label>📈 লাভ % (সব পণ্যে)</label><input id="m" type="number" step="0.5" value="${lc?.margin_pct ?? S.settings.margin_pct}"></div>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <div><label>অন্যান্য খরচ (৳) — কাস্টমস, ভাড়া ইত্যাদি</label><input id="x" type="number" step="1" value="${P.extra || ""}"></div>
+      <div><label>মোট ওজন (কেজি) — ঐচ্ছিক</label><input id="w" type="number" step="0.01" value="${P.weight || ""}"></div>
+    </div>
+    <p class="mute" style="margin:8px 0 0">${P.received ? "📥 বাংলাদেশে পাওয়া পিস দিয়ে হিসাব হচ্ছে।" : "📦 মাল মেলানো হয়নি — অর্ডারের পিস দিয়ে হিসাব হচ্ছে।"} প্রতিটা পণ্যের ওজন (গ্রাম/পিস) দিলে সেই পণ্যের শিপিং খরচ আলাদা হিসাব হবে। মোট ওজন দিলে, যেসব পণ্যের ওজন দেননি তাদের মধ্যে বাকি ওজন সমান ভাগ হবে।</p>
+    <div class="totals" style="margin-top:12px">
+      <span>পণ্যের দাম (চায়না): <b id="t-goods">${tk(P.goodsBdt)}</b></span>
+      <span>শিপিং: <b id="t-ship">${tk(P.shipTotal)}</b> (<span id="t-kg">${fmt(P.totalKg)}</span> কেজি)</span>
+      <span>অন্যান্য: <b id="t-extra">${tk(P.extra)}</b></span>
+      <span>মোট খরচ: <b id="t-cost">${tk(P.totalCost)}</b></span>
+      <span>বিক্রি করলে মোট: <b id="t-sell">${tk(P.totalSell)}</b></span>
+      <span>আনুমানিক লাভ: <b id="t-prof" style="color:${P.totalSell - P.totalCost >= 0 ? "var(--pri)" : "var(--bad)"}">${tk(P.totalSell - P.totalCost)}</b></span>
+    </div>
+    <div class="pgs">${groupRows(P.rows).map(G => { const f = G.rows[0], same = (k) => G.rows.every(r => (r[k] ?? null) === (f[k] ?? null));
+      const gq = G.rows.reduce((a, r) => a + r.q, 0);
+      return `<div class="pg" data-g="${esc(G.key)}">
+      <div class="pg-head">
+        ${f.item.image_url ? `<img class="pimg" src="${esc(f.item.image_url)}" alt="">` : `<div class="pimg ph">📦</div>`}
+        <div class="pg-name"><b>${esc(f.item.product_name || f.item.product_name_cn)}</b>${f.item.line_type === "extra" ? ` <span class="rb more">বাড়তি</span>` : ""}
+          ${f.item.product_name_cn && f.item.product_name ? `<div class="mute">${esc(f.item.product_name_cn)}</div>` : ""}
+          <div class="mute">${G.rows.length} কালার/সাইজ · ${gq} পিস</div></div>
+        <div class="pg-in">
+          <label>দাম (¥)<input class="g-cny" type="number" step="0.01" value="${same("cny") && f.cny ? f.cny : ""}" placeholder="${same("cny") ? "0" : "ভিন্ন"}"></label>
+          <label>ওজন (গ্রাম/পিস)<input class="g-wg" type="number" step="1" value="${same("weight_g") ? (f.weight_g ?? "") : ""}" placeholder="${same("weight_g") ? "" : "ভিন্ন"}"><span class="pg-hint wg-hint"></span></label>
+          <label>লাভ %<div class="stepper"><button type="button" class="st-dn">−</button><input class="g-mg" type="number" step="1" value="${same("ownMargin") ? (f.ownMargin ?? "") : ""}" placeholder=""><button type="button" class="st-up">+</button></div><span class="pg-hint mg-hint"></span></label>
+        </div>
+      </div>
+      <div class="pg-bd mute"></div>
+      <div class="tw"><table class="pg-t"><thead><tr><th>কালার / সাইজ</th><th class="n">পিস</th><th class="n">খরচ/পিস</th><th class="n">বিক্রয়মূল্য</th><th>নিজের দাম</th><th class="n">লাভ/পিস</th><th class="n">মোট লাভ</th></tr></thead>
+      <tbody>${G.rows.map(r => `<tr data-id="${r.item.id}">
+        <td>${esc(r.item.color)}${r.item.size ? ` <span class="mute">· ${esc(r.item.size)}</span>` : ""}</td><td class="n">${r.q}</td>
+        <td class="n c-cost"></td><td class="n"><b class="c-sell"></b></td>
+        <td><input class="ovr" type="number" step="1" value="${r.override ?? ""}" placeholder="—"></td>
+        <td class="n"><span class="c-ppc pc"></span><div class="mute c-pct"></div></td><td class="n c-prof"></td></tr>`).join("")}</tbody></table></div>
+    </div>`; }).join("")}</div>
+    <div class="row" style="margin-top:12px"><span class="mute">💾 লিখলেই নিজে থেকে সেভ হয়</span><span id="psave" class="rb ok" style="display:inline-block"></span></div>
+    <p class="mute">খরচ/পিস = ইউয়ান দাম × রেট + শিপিং/পিস (ওজন × প্রতি কেজি খরচ) + অন্যান্য খরচের ভাগ। বিক্রয়মূল্য = খরচ × (১ + লাভ%), ৫ টাকায় রাউন্ড করা। কোনো পণ্যের লাভ % ফাঁকা রাখলে সাধারণ লাভ % ধরা হবে। নিজে দাম বসাতে চাইলে “নিজের দাম” ঘরে লিখুন।</p>
+  </div>`;
+}
+
+function bindPricing(main, lot, items, costs, lc) {
+  const v = (id) => { const s = main.querySelector(id).value.trim(); return s === "" ? null : num(s); };
+  const nv = (el) => { const s = el.value.trim(); return s === "" ? null : num(s); };
+  // প্রতিটা লাইনের মান এখানে থাকে
+  const C = {};
+  items.forEach(i => { const c = costs[i.id] || {}; C[i.id] = { unit_price_cny: num(c.unit_price_cny), weight_g: c.weight_g ?? null, margin_pct: c.margin_pct ?? null, sell_price_override: c.sell_price_override ?? null }; });
+  const groupIds = (pg) => [...pg.querySelectorAll("tr[data-id]")].map(tr => tr.dataset.id);
+  const live = () => {
+    const lc2 = { cny_rate: v("#r"), shipping_per_kg: v("#k"), margin_pct: v("#m"), extra_cost_bdt: v("#x") ?? 0, total_weight_kg: v("#w") ?? 0 };
+    const P2 = pricing(items, C, lc2, S.settings, !!lot.received_at);
+    const byId = Object.fromEntries(P2.rows.map(r => [r.item.id, r]));
+    main.querySelectorAll(".pg").forEach(pg => {
+      const ids = groupIds(pg), f = byId[ids[0]];
+      pg.querySelector(".pg-bd").innerHTML = f ? `খরচ/পিস = ¥${fmt(f.cny)} × ${fmt(P2.rate)} = <b>${tk(f.cny * P2.rate)}</b> + শিপিং <b>${tk(f.ship)}</b>${P2.extraPerPc ? ` + অন্যান্য <b>${tk(P2.extraPerPc)}</b>` : ""} = <b>${tk(f.cost)}</b>` : "";
+      const mg = pg.querySelector(".g-mg");
+      pg.querySelector(".mg-hint").textContent = mg.value.trim() === "" ? `সাধারণ ${fmt(P2.margin)}% ধরা হচ্ছে` : "এই পণ্যের নিজস্ব লাভ";
+      const wg = pg.querySelector(".g-wg");
+      pg.querySelector(".wg-hint").textContent = wg.value.trim() !== "" || wg.placeholder === "ভিন্ন" ? "" : (f && f.kgPc ? `ফাঁকা — মোট ওজন থেকে আন্দাজ ${Math.round(f.kgPc * 1000)} গ্রাম` : "ফাঁকা — শিপিং ধরা হচ্ছে না");
+      pg.querySelector(".stepper").classList.toggle("off", ids.every(id => byId[id].override != null));
+      ids.forEach(id => {
+        const r = byId[id], tr = pg.querySelector(`tr[data-id="${id}"]`);
+        tr.querySelector(".c-cost").textContent = tk(r.cost);
+        tr.querySelector(".c-sell").textContent = tk(r.sell);
+        const ppc = tr.querySelector(".c-ppc"); ppc.textContent = tk(r.sell - r.cost); ppc.className = "c-ppc pc " + pcClass(r);
+        tr.querySelector(".c-pct").textContent = r.cost ? `${Math.round((r.sell / r.cost - 1) * 100)}%${r.override != null ? " (নিজের দাম)" : ""}` : "";
+        tr.querySelector(".c-prof").textContent = tk((r.sell - r.cost) * r.q);
+      });
+    });
+    const set = (id, t) => { const el = main.querySelector(id); if (el) el.textContent = t; };
+    set("#t-goods", tk(P2.goodsBdt)); set("#t-ship", tk(P2.shipTotal)); set("#t-kg", fmt(P2.totalKg)); set("#t-extra", tk(P2.extra));
+    set("#t-cost", tk(P2.totalCost)); set("#t-sell", tk(P2.totalSell)); set("#t-prof", tk(P2.totalSell - P2.totalCost));
+    const pf = main.querySelector("#t-prof"); if (pf) pf.style.color = P2.totalSell - P2.totalCost >= 0 ? "var(--pri)" : "var(--bad)";
+    main.querySelectorAll("td.price-col").forEach((td, n) => { if (P2.rows[n]) td.textContent = tk(P2.rows[n].sell); });
+  };
+  // অটো সেভ
+  const st = main.querySelector("#psave");
+  const show = (t, cls) => { st.textContent = t; st.className = "rb " + cls; };
+  let timer = null, saving = false, again = false;
+  const save = async () => {
+    if (saving) { again = true; return; }
+    saving = true; show("⏳ সেভ হচ্ছে…", "more");
+    try {
+      await q(sb.from("pl_lot_costs").upsert({ lot_id: lot.id, total_weight_kg: v("#w") ?? 0, cny_rate: v("#r"), shipping_per_kg: v("#k"), margin_pct: v("#m"), extra_cost_bdt: v("#x") ?? 0 }));
+      const rows = Object.entries(C).map(([id, c]) => ({ item_id: id, ...c }));
+      if (rows.length) await q(sb.from("pl_item_costs").upsert(rows));
+      show("✅ সেভ হয়েছে", "ok");
+    } catch (err) { show("❌ সেভ হয়নি: " + err.message, "bad"); }
+    saving = false;
+    if (again) { again = false; save(); }
+  };
+  const changed = () => { live(); show("✏️ পরিবর্তন হচ্ছে…", "more"); clearTimeout(timer); timer = setTimeout(save, 1000); };
+  const now = () => { clearTimeout(timer); save(); };
+  // পণ্যের কার্ডের ঘর → ওই পণ্যের সব কালার/সাইজে বসে
+  main.querySelectorAll(".pg").forEach(pg => {
+    const ids = groupIds(pg);
+    const bind = (cls, key, extra) => { const el = pg.querySelector(cls);
+      el.addEventListener("input", () => { ids.forEach(id => { C[id][key] = key === "unit_price_cny" ? (nv(el) ?? 0) : nv(el); if (extra) extra(id); }); changed(); });
+      el.addEventListener("change", now); };
+    bind(".g-cny", "unit_price_cny");
+    bind(".g-wg", "weight_g");
+    bind(".g-mg", "margin_pct", (id) => { C[id].sell_price_override = null; const o = pg.querySelector(`tr[data-id="${id}"] .ovr`); if (o) o.value = ""; });
+    const inp = pg.querySelector(".g-mg");
+    const bump = (d) => { const cur = inp.value.trim() === "" ? num(main.querySelector("#m").value || S.settings.margin_pct) : num(inp.value); inp.value = Math.max(0, cur + d); inp.dispatchEvent(new Event("input")); now(); };
+    pg.querySelector(".st-dn").onclick = () => bump(-5);
+    pg.querySelector(".st-up").onclick = () => bump(5);
+    pg.querySelectorAll(".ovr").forEach(o => {
+      const id = o.closest("tr").dataset.id;
+      o.addEventListener("input", () => { C[id].sell_price_override = nv(o); changed(); });
+      o.addEventListener("change", now);
+    });
+  });
+  ["#r", "#k", "#m", "#x", "#w"].forEach(id => { const el = main.querySelector(id); el.addEventListener("input", changed); el.addEventListener("change", now); });
+  window.onbeforeunload = () => (timer && st.textContent.startsWith("✏️")) ? "" : undefined;
+  live();
+}
+
+// ---------- editor (new / edit) ----------
+async function viewEditor(main) {
+  main = main || document.getElementById("main");
+  const editing = S.tab === "edit";
+  let lot = { lot_no: "", brand: S.me.brand || "Zapai", supplier: "", order_no: "", notes: "", status: "ordered" };
+  let rows = [];
+  if (editing) {
+    lot = await q(sb.from("pl_lots").select("*").eq("id", S.lotId).single());
+    if (lot.locked) { main.innerHTML = lockBanner(lot) + `<button class="btn ghost" id="bk">← লটে ফিরুন</button>`; main.querySelector("#bk").onclick = () => go("lot"); bindLock(main, lot); return; }
+    const items = await q(sb.from("pl_lot_items").select("*").eq("lot_id", lot.id).order("position"));
+    const ic = items.length ? await q(sb.from("pl_item_costs").select("*").in("item_id", items.map(i => i.id))) : [];
+    const cm = Object.fromEntries(ic.map(c => [c.item_id, c]));
+    rows = items.map(i => ({ ...i, unit_price_cny: cm[i.id]?.unit_price_cny ?? 0, sell_price_override: cm[i.id]?.sell_price_override ?? null }));
+  } else {
+    lot.lot_no = "";
+  }
+  let files = [];
+
+  main.innerHTML = `
+  <div class="card">
+    <h2>${editing ? "লট এডিট — " + esc(lot.lot_no) : "প্যাকিং লিস্ট যোগ করুন"}</h2>
+    <div class="grid">
+      <div><label>ট্র্যাকিং নম্বর</label><input id="lot_no" placeholder="যেমন: ZTO 7904…" value="${esc(lot.lot_no)}"></div>
+      <div><label>ব্র্যান্ড</label><select id="brand" ${isSuper() ? "" : "disabled"}>${(isSuper() ? ["Zapai", "Kido"] : [S.me.brand]).map(b => `<option ${lot.brand === b ? "selected" : ""}>${b}</option>`).join("")}</select></div>
+      <div><label>সাপ্লায়ার</label><input id="supplier" value="${esc(lot.supplier)}"></div>
+      <div><label>অর্ডার নম্বর</label><input id="order_no" value="${esc(lot.order_no)}"></div>
+    </div>
+    <div style="margin-top:10px"><label>নোট</label><input id="notes" value="${esc(lot.notes)}"></div>
+  </div>
+
+  <div class="card">
+    <h2>📷 1688 স্ক্রিনশট বা Excel দিন</h2>
+    <div class="drop" id="drop">এখানে ছবি/Excel টেনে আনুন, অথবা ট্যাপ করে বেছে নিন<br><span class="mute">একাধিক স্ক্রিনশট দেওয়া যাবে · লম্বা স্ক্রিনশটও চলবে</span></div>
+    <input type="file" id="file" accept="image/*,.xlsx,.xls,.csv" multiple hidden>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="ai" disabled>🤖 AI দিয়ে পড়ুন</button>
+      <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="append" style="width:auto"> আগের লাইনের সাথে যোগ করুন</label>
+      <span class="mute" id="aimsg"></span>
+    </div>
+    <div id="warn"></div>
+  </div>
+
+  <div class="card">
+    <div class="row"><h2 style="margin:0">লাইনগুলো চেক করুন</h2><span class="sp"></span><span class="mute" id="sum"></span></div>
+    <p class="mute">AI ভুল করতে পারে — সেভের আগে পরিমাণ, সাইজ আর কালার মিলিয়ে নিন।</p>
+    <div class="tw"><table class="edit" id="tbl">
+      <thead><tr><th>#</th><th>ছবি</th><th>পণ্য (বাংলা/ইংরেজি)</th><th>চাইনিজ নাম</th><th>কালার</th><th>সাইজ</th><th>পরিমাণ</th><th>কার্টন</th><th>দাম (¥)</th><th>নোট</th><th></th></tr></thead>
+      <tbody></tbody></table></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost sm" id="add">+ লাইন যোগ</button><span class="sp"></span>
+      <button class="btn ghost" id="cancel">বাতিল</button>
+      <button class="btn" id="save">✅ সেভ করুন</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>`;
+
+  const tbody = main.querySelector("#tbl tbody");
+  const F = ["product_name", "product_name_cn", "color", "size", "qty", "carton_no", "unit_price_cny", "notes"];
+  const readRows = () => [...tbody.querySelectorAll("tr")].map(tr => {
+    const o = { id: tr.dataset.id || null, sell_price_override: tr.dataset.ovr ? num(tr.dataset.ovr) : null, image_url: tr.dataset.img || "", received_qty: tr.dataset.rcv === "" || tr.dataset.rcv == null ? null : +tr.dataset.rcv, line_type: tr.dataset.type || "ordered" };
+    F.forEach(k => o[k] = tr.querySelector(`[data-k="${k}"]`).value);
+    return o;
+  });
+  const drawRows = () => {
+    tbody.innerHTML = rows.map((r, n) => `<tr data-id="${r.id || ""}" data-ovr="${r.sell_price_override ?? ""}" data-img="${esc(r.image_url || "")}" data-rcv="${r.received_qty ?? ""}" data-type="${r.line_type || "ordered"}">
+      <td>${n + 1}</td>
+      <td><div class="imgcell">${r.image_url ? `<img class="pimg" data-pick="${n}" src="${esc(r.image_url)}" alt=""><span class="x" data-rmimg="${n}">✕</span>` : `<div class="pimg ph" data-pick="${n}" title="ছবি যোগ করুন">📷</div>`}</div></td>
+      <td><input data-k="product_name" value="${esc(r.product_name)}" style="min-width:150px"></td>
+      <td><input data-k="product_name_cn" value="${esc(r.product_name_cn)}" style="min-width:120px"></td>
+      <td><input data-k="color" value="${esc(r.color)}" style="width:90px"></td>
+      <td><input data-k="size" value="${esc(r.size)}" style="width:70px"></td>
+      <td><input data-k="qty" type="number" value="${r.qty ?? 0}" style="width:70px"></td>
+      <td><input data-k="carton_no" value="${esc(r.carton_no)}" style="width:60px"></td>
+      <td><input data-k="unit_price_cny" type="number" step="0.01" value="${r.unit_price_cny || ""}" style="width:70px"></td>
+      <td><input data-k="notes" value="${esc(r.notes)}" style="width:100px"></td>
+      <td><button class="btn bad sm" data-del="${n}">✕</button></td></tr>`).join("");
+    tbody.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { rows = readRows(); rows.splice(+b.dataset.del, 1); drawRows(); });
+    tbody.querySelectorAll("[data-rmimg]").forEach(b => b.onclick = (e) => { e.stopPropagation(); rows = readRows(); rows[+b.dataset.rmimg].image_url = ""; drawRows(); });
+    tbody.querySelectorAll("[data-pick]").forEach(b => b.onclick = (e) => {
+      e.stopPropagation();
+      const fi = document.createElement("input"); fi.type = "file"; fi.accept = "image/*";
+      fi.onchange = async () => { if (!fi.files[0]) return; const url = await thumbData(fi.files[0]); rows = readRows(); rows[+b.dataset.pick].image_url = url; drawRows(); };
+      fi.click();
+    });
+    tbody.querySelectorAll("input").forEach(i => i.oninput = updSum);
+    updSum();
+  };
+  const updSum = () => { const r = readRows(); main.querySelector("#sum").textContent = `${r.length} লাইন · ${r.reduce((a, x) => a + num(x.qty), 0)} পিস`; };
+  drawRows();
+
+  // files
+  const drop = main.querySelector("#drop"), inp = main.querySelector("#file");
+  drop.onclick = () => inp.click();
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("hot"); };
+  drop.ondragleave = () => drop.classList.remove("hot");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("hot"); addFiles([...e.dataTransfer.files]); };
+  inp.onchange = () => { addFiles([...inp.files]); inp.value = ""; };
+  document.onpaste = (e) => { if (S.tab !== "new" && S.tab !== "edit") return; const f = [...(e.clipboardData?.files || [])]; if (f.length) addFiles(f); };
+
+  async function addFiles(list) {
+    for (const f of list) {
+      if (/\.(xlsx|xls|csv)$/i.test(f.name)) { await importExcel(f); continue; }
+      if (f.type.startsWith("image/")) files.push(f);
+    }
+    main.querySelector("#thumbs").innerHTML = files.map((f, i) => `<img src="${URL.createObjectURL(f)}" title="${esc(f.name)}" data-i="${i}">`).join("");
+    main.querySelectorAll("#thumbs img").forEach(im => im.onclick = () => { files.splice(+im.dataset.i, 1); addFiles([]); });
+    main.querySelector("#ai").disabled = !files.length;
+    main.querySelector("#aimsg").textContent = files.length ? `${files.length}টা ছবি (ছবিতে ট্যাপ করলে বাদ যাবে)` : "";
+  }
+
+  async function importExcel(f) {
+    const wb = XLSX.read(await f.arrayBuffer());
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" });
+    // find header row
+    // order matters: each column is assigned to the first key it matches
+    const keys = {
+      product_name: /product\s*\(en\)|english|পণ্য/i,
+      unit_price_cny: /单价|价格|price|দাম/i,
+      carton_no: /箱号|carton|ctn|কার্টন/i,
+      notes: /备注|note|নোট/i,
+      product_name_cn: /商品名称|商品|品名|产品名称|chinese|product|name|title/i,
+      color: /颜色|色|colou?r|কালার/i,
+      size: /尺码|尺寸|规格|size|সাইজ/i,
+      qty: /数量|件数|qty|quantity|pcs|পরিমাণ/i,
+    };
+    let hi = -1, map = {};
+    for (let r = 0; r < Math.min(data.length, 20); r++) {
+      const m = {};
+      data[r].forEach((c, ci) => { for (const [k, re] of Object.entries(keys)) if (m[k] == null && re.test(String(c))) { m[k] = ci; break; } });
+      if (m.qty != null && (m.product_name_cn != null || m.size != null)) { hi = r; map = m; break; }
+    }
+    if (hi < 0) { alert("Excel-এ কলাম চেনা যায়নি (数量 / 商品名称 / 尺码 খুঁজেছি)। ছবি দিয়ে চেষ্টা করুন বা ম্যানুয়ালি লিখুন।"); return; }
+    let last = "";
+    const add = [];
+    for (let r = hi + 1; r < data.length; r++) {
+      const row = data[r], qty = num(row[map.qty]);
+      if (!qty) continue;
+      const name = String(row[map.product_name_cn] ?? "").trim() || last; last = name;
+      add.push({ product_name: String(row[map.product_name] ?? "").trim(), product_name_cn: name, color: String(row[map.color] ?? ""), size: String(row[map.size] ?? ""), qty: Math.round(qty), unit_price_cny: num(row[map.unit_price_cny]), carton_no: String(row[map.carton_no] ?? ""), notes: String(row[map.notes] ?? "") });
+    }
+    // lot info from an "Info" sheet, if present (made by Claude)
+    const info = wb.Sheets["Info"];
+    if (info) XLSX.utils.sheet_to_json(info, { header: 1 }).forEach(([k, v]) => {
+      const el = { "Supplier": "#supplier", "Order No": "#order_no", "Lot No": "#lot_no", "Brand": "#brand" }[String(k).trim()];
+      if (el && v != null && String(v).trim()) main.querySelector(el).value = String(v).trim();
+    });
+    rows = main.querySelector("#append").checked ? readRows().concat(add) : (readRows().filter(r => r.product_name || r.product_name_cn).concat(add));
+    drawRows();
+    main.querySelector("#aimsg").textContent = `Excel থেকে ${add.length} লাইন এসেছে (চাইনিজ নাম ইংরেজিতে নিজে লিখে দিন)`;
+  }
+
+  main.querySelector("#ai").onclick = async (e) => {
+    const b = e.target; b.disabled = true;
+    const msg = main.querySelector("#aimsg"), warn = main.querySelector("#warn");
+    warn.innerHTML = "";
+    try {
+      msg.textContent = "ছবি তৈরি হচ্ছে…";
+      const images = [];
+      for (const f of files) images.push(...await sliceImage(f));
+      msg.textContent = `AI পড়ছে (${images.length} অংশ)… ২০–৬০ সেকেন্ড লাগতে পারে`;
+      const res = await fn("pl-parse-order", { images });
+      const add = (res.items || []).map(i => ({ ...i, carton_no: "", notes: "" }));
+      rows = main.querySelector("#append").checked ? readRows().concat(add) : add;
+      drawRows();
+      if (res.supplier && !main.querySelector("#supplier").value) main.querySelector("#supplier").value = res.supplier;
+      if (res.order_no && !main.querySelector("#order_no").value) main.querySelector("#order_no").value = res.order_no;
+      msg.textContent = `✅ ${add.length} লাইন পাওয়া গেছে — মিলিয়ে দেখুন`;
+      if (res.warnings?.length) warn.innerHTML = `<div class="warnbox">⚠️ AI-এর নোট:<br>${res.warnings.map(esc).join("<br>")}</div>`;
+    } catch (err) { msg.textContent = ""; warn.innerHTML = `<div class="err">${esc(err.message)}</div>`; }
+    b.disabled = false;
+  };
+
+  main.querySelector("#add").onclick = () => { rows = readRows(); rows.push({ product_name: "", product_name_cn: "", color: "", size: "", qty: 0, carton_no: "", unit_price_cny: 0, notes: "" }); drawRows(); };
+  main.querySelector("#cancel").onclick = () => editing ? go("lot", lot.id) : go("lots");
+
+  main.querySelector("#save").onclick = async (e) => {
+    const b = e.target, err = main.querySelector("#err"); err.textContent = "";
+    const lotNo = main.querySelector("#lot_no").value.trim();
+    if (!lotNo) { err.textContent = "ট্র্যাকিং নম্বর দিন"; return; }
+    const list = readRows().filter(r => r.product_name.trim() || r.product_name_cn.trim() || num(r.qty));
+    if (!list.length) { err.textContent = "অন্তত একটা লাইন দিন"; return; }
+    b.disabled = true;
+    try {
+      const head = { lot_no: lotNo, brand: isSuper() ? main.querySelector("#brand").value : S.me.brand, supplier: main.querySelector("#supplier").value.trim(), order_no: main.querySelector("#order_no").value.trim(), notes: main.querySelector("#notes").value.trim() };
+      let lotId = lot.id;
+      if (editing) await q(sb.from("pl_lots").update(head).eq("id", lotId));
+      else lotId = (await q(sb.from("pl_lots").insert(head).select("id").single())).id;
+      // replace items (costs cascade)
+      if (editing) await q(sb.from("pl_lot_items").delete().eq("lot_id", lotId));
+      const ins = await q(sb.from("pl_lot_items").insert(list.map((r, n) => ({
+        lot_id: lotId, position: n, product_name: r.product_name.trim(), product_name_cn: r.product_name_cn.trim(),
+        color: r.color.trim(), size: r.size.trim(), qty: Math.round(num(r.qty)), carton_no: r.carton_no.trim(), notes: r.notes.trim(), image_url: r.image_url || "", received_qty: r.received_qty ?? null, line_type: r.line_type || "ordered" }))).select("id,position"));
+      await q(sb.from("pl_item_costs").insert(ins.map(x => ({ item_id: x.id, unit_price_cny: num(list[x.position].unit_price_cny), sell_price_override: list[x.position].sell_price_override }))));
+      go("lot", lotId);
+    } catch (ex) { err.textContent = ex.message; b.disabled = false; }
+  };
+}
+
+// ---------- receiving (BD) ----------
+function rcvStats(lot, items) {
+  const ord = items.filter(i => i.line_type !== "extra"), ext = items.filter(i => i.line_type === "extra");
+  const received = items.reduce((a, i) => a + (i.received_qty ?? 0), 0);
+  const short = ord.reduce((a, i) => a + Math.max(0, i.qty - (i.received_qty ?? 0)), 0);
+  const extra = ord.reduce((a, i) => a + Math.max(0, (i.received_qty ?? 0) - i.qty), 0) + ext.reduce((a, i) => a + (i.received_qty || 0), 0);
+  return { done: !!lot.received_at, received, short, extra, extraLines: ext.length };
+}
+function diffHtml(i) {
+  const d = i.line_type === "extra" ? (i.received_qty || 0) : (i.received_qty ?? 0) - i.qty;
+  return d === 0 ? `<span class="rb ok">✓</span>` : d < 0 ? `<span class="rb bad">${d}</span>` : `<span class="rb more">+${d}</span>`;
+}
+async function viewReceive(main) {
+  const lot = await q(sb.from("pl_lots").select("*").eq("id", S.lotId).single());
+  const items = await q(sb.from("pl_lot_items").select("*").eq("lot_id", lot.id).order("position"));
+  const ord = items.filter(i => i.line_type !== "extra");
+  let extras = items.filter(i => i.line_type === "extra").map(i => ({ id: i.id, product_name: i.product_name, color: i.color, size: i.size, received: i.received_qty ?? 0, notes: i.notes, image_url: i.image_url }));
+  main.innerHTML = `
+  <div class="row no-print" style="margin-bottom:12px"><button class="btn ghost sm" id="back">← সব লট</button></div>
+  ${lotTabs("rcv")}
+  <div class="card">
+    <div class="row"><h2 style="margin:0">📥 মাল মেলান — ${esc(lot.lot_no)}</h2><span class="sp"></span><span class="bchip ${lot.brand.toLowerCase()}">${esc(lot.brand)}</span></div>
+    <p class="mute">বাংলাদেশে প্রতিটা লাইনের কত পিস পেয়েছেন লিখুন। চায়নার অর্ডারের তথ্য বদলাবে না, পাশে আলাদা করে থাকবে।</p>
+    <div class="row" style="margin-bottom:10px"><button class="btn ghost sm" id="all">✓ সব অর্ডার অনুযায়ী পেয়েছি</button><button class="btn ghost sm" id="clr">সব মুছে ফেলুন</button><span class="sp"></span><span id="rs" class="totals" style="margin:0"></span></div>
+    <div class="tw"><table class="edit" id="rt">
+      <thead><tr><th>#</th><th>ছবি</th><th>পণ্য</th><th>কালার</th><th>সাইজ</th><th class="n">অর্ডার (চায়না)</th><th>পেয়েছি (BD)</th><th class="n">পার্থক্য</th></tr></thead>
+      <tbody>${ord.map((i, n) => `<tr data-id="${i.id}" data-q="${i.qty}">
+        <td>${n + 1}</td><td>${i.image_url ? `<img class="pimg" src="${esc(i.image_url)}" alt="">` : ""}</td>
+        <td>${esc(i.product_name)}${i.product_name_cn ? `<div class="mute">${esc(i.product_name_cn)}</div>` : ""}</td>
+        <td>${esc(i.color)}</td><td>${esc(i.size)}</td><td class="n"><b>${i.qty}</b></td>
+        <td><input type="number" min="0" class="rq" value="${i.received_qty ?? ""}" placeholder="?" style="width:80px"></td>
+        <td class="n df"></td></tr>`).join("")}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="row"><h2 style="margin:0">➕ বাড়তি / অন্য পণ্য</h2><span class="sp"></span><button class="btn ghost sm" id="addx">+ বাড়তি পণ্য যোগ</button></div>
+    <p class="mute">অর্ডারে ছিল না কিন্তু সাপ্লায়ার দিয়েছে (যেমন স্টক না থাকায় অন্য পণ্য), সেগুলো এখানে লিখুন।</p>
+    <div class="tw"><table class="edit"><thead><tr><th>ছবি</th><th>পণ্য</th><th>কালার</th><th>সাইজ</th><th>পিস</th><th>নোট</th><th></th></tr></thead><tbody id="xt"></tbody></table></div>
+  </div>
+  <div class="card">
+    <label style="display:flex;gap:8px;align-items:center;margin:0 0 12px"><input type="checkbox" id="arr" checked style="width:auto"> লটের অবস্থা "পৌঁছেছে" করে দিন</label>
+    <div class="row"><span class="mute">আজ সব শেষ না হলে "আংশিক সেভ" চাপুন — ফাঁকা লাইনগুলো ফাঁকাই থাকবে, পরে এসে বাকিটা করবেন।</span><span class="sp"></span><button class="btn ghost" id="cancel">বাতিল</button><button class="btn ghost" id="draft">💾 আংশিক সেভ (পরে শেষ করব)</button><button class="btn" id="save">✅ মেলানো শেষ</button></div>
+    <div class="err" id="err"></div>
+  </div>`;
+  const rt = main.querySelector("#rt tbody"), xt = main.querySelector("#xt");
+  const readX = () => [...xt.querySelectorAll("tr[data-id]")].map(tr => ({ id: tr.dataset.id || "", image_url: tr.dataset.img || "",
+    product_name: tr.querySelector('[data-k="product_name"]').value, color: tr.querySelector('[data-k="color"]').value,
+    size: tr.querySelector('[data-k="size"]').value, received: tr.querySelector('[data-k="received"]').value, notes: tr.querySelector('[data-k="notes"]').value }));
+  const summ = () => {
+    let ordered = 0, got = 0, short = 0, extra = 0, blank = 0;
+    rt.querySelectorAll("tr").forEach(tr => {
+      const qy = +tr.dataset.q, v = tr.querySelector(".rq").value, r = v === "" ? null : Math.max(0, Math.round(num(v)));
+      ordered += qy; got += r ?? 0;
+      const td = tr.querySelector(".df");
+      if (r == null) { td.innerHTML = `<span class="mute">—</span>`; blank++; return; }
+      const d = r - qy; if (d < 0) short -= d; else extra += d;
+      td.innerHTML = d === 0 ? `<span class="rb ok">✓</span>` : d < 0 ? `<span class="rb bad">${d}</span>` : `<span class="rb more">+${d}</span>`;
+    });
+    readX().forEach(x => { const r = Math.max(0, Math.round(num(x.received))); got += r; extra += r; });
+    main.querySelector("#rs").innerHTML = `<span>অর্ডার: <b>${ordered}</b></span><span>পেয়েছি: <b>${got}</b></span>${short ? `<span class="rb bad">কম: <b>${short}</b></span>` : ""}${extra ? `<span class="rb more">বাড়তি: <b>${extra}</b></span>` : ""}${blank ? `<span class="mute">ফাঁকা: ${blank} লাইন</span>` : ""}`;
+  };
+  const drawX = () => {
+    xt.innerHTML = extras.length ? extras.map((x, n) => `<tr data-id="${x.id || ""}" data-img="${esc(x.image_url || "")}">
+      <td><div class="imgcell">${x.image_url ? `<img class="pimg" data-pick="${n}" src="${esc(x.image_url)}" alt=""><span class="x" data-rmimg="${n}">✕</span>` : `<div class="pimg ph" data-pick="${n}" title="ছবি যোগ করুন">📷</div>`}</div></td>
+      <td><input data-k="product_name" value="${esc(x.product_name)}" placeholder="পণ্যের নাম" style="min-width:150px"></td>
+      <td><input data-k="color" value="${esc(x.color)}" style="width:90px"></td>
+      <td><input data-k="size" value="${esc(x.size)}" style="width:80px"></td>
+      <td><input data-k="received" type="number" min="0" value="${x.received ?? ""}" style="width:70px"></td>
+      <td><input data-k="notes" value="${esc(x.notes)}" style="width:140px"></td>
+      <td><button class="btn bad sm" data-rm="${n}">✕</button></td></tr>`).join("") : `<tr><td colspan="7" class="mute">কোনো বাড়তি পণ্য নেই</td></tr>`;
+    xt.querySelectorAll("input").forEach(i => i.oninput = summ);
+    xt.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { extras = readX(); extras.splice(+b.dataset.rm, 1); drawX(); });
+    xt.querySelectorAll("[data-rmimg]").forEach(b => b.onclick = (e) => { e.stopPropagation(); extras = readX(); extras[+b.dataset.rmimg].image_url = ""; drawX(); });
+    xt.querySelectorAll("[data-pick]").forEach(b => b.onclick = (e) => {
+      e.stopPropagation(); const fi = document.createElement("input"); fi.type = "file"; fi.accept = "image/*";
+      fi.onchange = async () => { if (!fi.files[0]) return; const url = await thumbData(fi.files[0]); extras = readX(); extras[+b.dataset.pick].image_url = url; drawX(); };
+      fi.click();
+    });
+    summ();
+  };
+  rt.querySelectorAll(".rq").forEach(i => i.oninput = summ);
+  drawX();
+  main.querySelector("#addx").onclick = () => { extras = readX(); extras.push({ id: "", product_name: "", color: "", size: "", received: "", notes: "", image_url: "" }); drawX(); };
+  main.querySelector("#all").onclick = () => { rt.querySelectorAll("tr").forEach(tr => tr.querySelector(".rq").value = tr.dataset.q); summ(); };
+  main.querySelector("#clr").onclick = () => { rt.querySelectorAll(".rq").forEach(i => i.value = ""); summ(); };
+  main.querySelector("#back").onclick = () => go("lots");
+  main.querySelector("#cancel").onclick = () => { S.lotTab = "pl"; go("lot"); };
+  bindLotTabs(main);
+  if (lot.locked) {
+    main.querySelectorAll("input, #all, #clr, #addx, #draft, #save, [data-rm], [data-pick]").forEach(e => { e.disabled = true; e.style.pointerEvents = "none"; });
+    main.querySelector(".card").insertAdjacentHTML("beforebegin", lockBanner(lot)); bindLock(main, lot);
+  }
+  main.querySelector("#draft").onclick = async (e) => {
+    const b = e.target, err = main.querySelector("#err"); err.textContent = "";
+    const its = [...rt.querySelectorAll("tr")].map(tr => ({ id: tr.dataset.id, received: tr.querySelector(".rq").value === "" ? "" : String(Math.max(0, Math.round(num(tr.querySelector(".rq").value)))) }));
+    const xs = readX().filter(x => x.product_name.trim() || num(x.received)).map(x => ({ ...x, product_name: x.product_name.trim(), received: String(Math.max(0, Math.round(num(x.received)))) }));
+    b.disabled = true;
+    try { await q(sb.rpc("pl_save_receive_draft", { p_lot: lot.id, p_items: its, p_extras: xs })); err.innerHTML = `<span class="ok">✅ আংশিক সেভ হয়েছে — পরে এসে বাকিটা করতে পারবেন।</span>`; b.disabled = false; }
+    catch (ex) { err.textContent = ex.message; b.disabled = false; }
+  };
+  main.querySelector("#save").onclick = async (e) => {
+    const b = e.target, err = main.querySelector("#err"); err.textContent = "";
+    const its = [...rt.querySelectorAll("tr")].map(tr => ({ id: tr.dataset.id, received: tr.querySelector(".rq").value === "" ? "" : String(Math.max(0, Math.round(num(tr.querySelector(".rq").value)))) }));
+    const xs = readX().filter(x => x.product_name.trim() || num(x.received)).map(x => ({ ...x, product_name: x.product_name.trim(), received: String(Math.max(0, Math.round(num(x.received)))) }));
+    if (its.every(i => i.received === "") && !xs.length) { err.textContent = "অন্তত একটা লাইনে পাওয়া পিস লিখুন"; return; }
+    const nb = its.filter(i => i.received === "").length;
+    if (nb) { if (!confirm(`${nb} লাইনে কিছু লেখা নেই — এগুলো ০ পিস (পাওয়া যায়নি) ধরা হবে। ঠিক আছে?`)) return; its.forEach(i => { if (i.received === "") i.received = "0"; }); }
+    b.disabled = true;
+    try { await q(sb.rpc("pl_save_receive", { p_lot: lot.id, p_items: its, p_extras: xs, p_mark_arrived: main.querySelector("#arr").checked })); S.lotTab = "pl"; go("lot"); }
+    catch (ex) { err.textContent = ex.message; b.disabled = false; }
+  };
+}
+
+// small product photo -> JPEG data URL (max 300px)
+async function thumbData(file) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  const sc = Math.min(1, 300 / Math.max(img.width, img.height));
+  const c = document.createElement("canvas"); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.82);
+}
+// click a product photo to see it big
+document.addEventListener("click", (e) => {
+  const im = e.target.closest("img.pimg"); if (!im || im.dataset.pick) return;
+  const lb = document.createElement("div"); lb.className = "lightbox"; lb.innerHTML = `<img src="${im.src}" alt="">`;
+  lb.onclick = () => lb.remove(); document.body.appendChild(lb);
+});
+
+// Resize + cut tall screenshots into readable slices
+async function sliceImage(file) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  const W = Math.min(img.width, 1100), scale = W / img.width, H = Math.round(img.height * scale);
+  const SL = 1500, OV = 120, out = [];
+  for (let y = 0; y < H; y += SL - OV) {
+    const h = Math.min(SL, H - y);
+    const c = document.createElement("canvas"); c.width = W; c.height = h;
+    const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, h);
+    ctx.drawImage(img, 0, -y, W, H);
+    out.push({ media_type: "image/jpeg", data: c.toDataURL("image/jpeg", 0.85).split(",")[1] });
+    if (y + h >= H) break;
+  }
+  return out;
+}
+
+// ---------- staff ----------
+async function viewStaff(main) {
+  const list = await q(sb.from("pl_profiles").select("*").order("created_at"));
+  main.innerHTML = `
+  <div class="card">
+    <h2>নতুন এমপ্লয়ি</h2>
+    <form id="f" class="grid">
+      <div><label>নাম</label><input name="name" required></div>
+      <div><label>Employee ID</label><input name="eid" required placeholder="যেমন: emp01"></div>
+      <div><label>পাসওয়ার্ড</label><input name="pw" required minlength="6"></div>
+      <div><label>কোম্পানি</label><select name="brand"><option>Zapai</option><option>Kido</option></select></div>
+      <div><label>রোল</label><select name="role"><option value="employee">কর্মচারী</option><option value="admin">কোম্পানি অ্যাডমিন</option><option value="super">সুপার অ্যাডমিন (সব কোম্পানি)</option></select></div>
+      <div style="align-self:end"><button class="btn" style="width:100%">যোগ করুন</button></div>
+    </form>
+    <div class="mute" style="margin-top:8px">এমপ্লয়ি: শুধু নিজের কোম্পানির লট দেখবে (দাম ছাড়া)। কোম্পানি অ্যাডমিন: নিজের কোম্পানির লট বানানো/এডিট আর দাম দেখা। সুপার অ্যাডমিন: সব কোম্পানি, এমপ্লয়ি আর সেটিংস। সুপার অ্যাডমিনের জন্য কোম্পানি লাগে না।</div>
+    <div class="err" id="err"></div>
+  </div>
+  <div class="card"><h2>সব এমপ্লয়ি</h2><div class="tw"><table>
+    <thead><tr><th>নাম</th><th>ID</th><th>কোম্পানি</th><th>রোল</th><th>অবস্থা</th><th></th></tr></thead>
+    <tbody>${list.map(p => `<tr data-id="${p.id}">
+      <td>${esc(p.full_name)}</td><td><b>${esc(p.employee_id)}</b></td>
+      <td>${p.role === "admin" && !p.brand ? "<span class='mute'>সব</span>" : `<select data-brand style="width:auto;padding:4px 8px">${["Zapai", "Kido"].map(b => `<option ${p.brand === b ? "selected" : ""}>${b}</option>`).join("")}${p.brand ? "" : "<option value='' selected>— বাছাই করুন —</option>"}</select>`}</td>
+      <td>${roleLabel(p)}</td>
+      <td>${p.active ? "চালু" : "<span style='color:var(--bad)'>বন্ধ</span>"}</td>
+      <td class="row">${p.id === S.me.id ? "<span class='mute'>আপনি</span>" : `
+        <button class="btn ghost sm" data-a="pw">পাসওয়ার্ড বদল</button>
+        <button class="btn ghost sm" data-a="toggle">${p.active ? "বন্ধ করুন" : "চালু করুন"}</button>
+        <button class="btn bad sm" data-a="del">মুছুন</button>`}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
+  main.querySelector("#f").onsubmit = async (e) => {
+    e.preventDefault(); const f = e.target, b = f.querySelector("button"); b.disabled = true;
+    try { await fn("pl-employees", { action: "create", employee_id: f.eid.value, password: f.pw.value, full_name: f.name.value, role: f.role.value, brand: f.brand.value }); render(); }
+    catch (err) { main.querySelector("#err").textContent = err.message; b.disabled = false; }
+  };
+  main.querySelectorAll("select[data-brand]").forEach(sel => sel.onchange = async () => {
+    const id = sel.closest("tr").dataset.id;
+    try { await q(sb.from("pl_profiles").update({ brand: sel.value || null }).eq("id", id).select()); render(); } catch (err) { alert(err.message); }
+  });
+  main.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
+    const id = b.closest("tr").dataset.id, p = list.find(x => x.id === id);
+    try {
+      if (b.dataset.a === "pw") { const pw = prompt(`${p.employee_id}-এর নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর):`); if (!pw) return; await fn("pl-employees", { action: "reset_password", user_id: id, password: pw }); alert("পাসওয়ার্ড বদলানো হয়েছে"); }
+      if (b.dataset.a === "toggle") { await q(sb.from("pl_profiles").update({ active: !p.active }).eq("id", id)); render(); }
+      if (b.dataset.a === "del") { if (!confirm(`${p.employee_id} মুছে ফেলবেন?`)) return; await fn("pl-employees", { action: "delete", user_id: id }); render(); }
+    } catch (err) { alert(err.message); }
+  });
+}
+
+// ---------- settings ----------
+async function viewSettings(main) {
+  const s = S.settings;
+  main.innerHTML = `
+  <div class="card">
+    <h2>প্রাইসিং ডিফল্ট</h2>
+    <p class="mute">প্রতিটা লটে আলাদা করে বদলানো যায়; না বদলালে এগুলোই ব্যবহার হবে।</p>
+    <div class="grid">
+      <div><label>ইউয়ান রেট (১ ¥ = ? ৳)</label><input id="r" type="number" step="0.01" value="${s.cny_rate}"></div>
+      <div><label>শিপিং প্রতি কেজি (৳)</label><input id="k" type="number" step="0.01" value="${s.shipping_per_kg}"></div>
+      <div><label>লাভ %</label><input id="m" type="number" step="0.1" value="${s.margin_pct}"></div>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="save">সেভ</button><span class="ok" id="msg"></span></div>
+  </div>`;
+  main.querySelector("#save").onclick = async () => {
+    try {
+      S.settings = await q(sb.from("pl_settings").update({ cny_rate: num(main.querySelector("#r").value), shipping_per_kg: num(main.querySelector("#k").value), margin_pct: num(main.querySelector("#m").value), updated_at: new Date().toISOString() }).eq("id", 1).select().single());
+      main.querySelector("#msg").textContent = "✅ সেভ হয়েছে";
+    } catch (err) { alert(err.message); }
+  };
+}
+
+boot();
+</script>
+<script>
+/* পাসওয়ার্ড দেখান/লুকান — সব পাসওয়ার্ড ঘরে নিজে থেকেই যোগ হয় */
+(function(){
+  function add(inp){
+    if (inp.dataset.pwtog) return; inp.dataset.pwtog = "1";
+    const w = document.createElement("span"); w.className = "pwwrap";
+    inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    const t = document.createElement("span"); t.className = "pwtog"; t.setAttribute("role","button"); t.tabIndex = 0;
+    t.textContent = "👁 দেখুন";
+    const flip = () => { const show = inp.type === "password"; inp.type = show ? "text" : "password"; t.textContent = show ? "🙈 লুকান" : "👁 দেখুন"; };
+    t.addEventListener("click", flip);
+    t.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+    w.appendChild(t);
+  }
+  const scan = () => document.querySelectorAll('input[type="password"]').forEach(add);
+  new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener("DOMContentLoaded", scan); scan();
+})();
+</script>
+</body>
+</html>
