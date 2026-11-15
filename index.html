@@ -806,7 +806,7 @@ async function viewLot(main) {
     const ic = items.length ? await q(sb.from("pl_item_costs").select("*").in("item_id", items.map(i => i.id))) : [];
     ic.forEach(c => costs[c.item_id] = c);
     P = pricing(items, costs, lotCost, S.settings, !!lot.received_at);
-    pays = await q(sb.from("pl_payments").select("*").eq("lot_id", lot.id).order("paid_on", { ascending: false }));
+    try { pays = await q(sb.from("pl_payments").select("*").eq("lot_id", lot.id).order("paid_on", { ascending: false })); } catch (e) { console.warn(e); }
   }
   const LT = isAdmin() && ["price", "pay"].includes(S.lotTab) ? S.lotTab : "pl";
   // summary by product
