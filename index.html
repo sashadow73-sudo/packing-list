@@ -615,6 +615,11 @@ async function boot() {
   if (!prof.data || !prof.data.active) { await sb.auth.signOut(); return showLogin("এই অ্যাকাউন্ট বন্ধ বা খুঁজে পাওয়া যায়নি"); }
   S.me = prof.data;
   if (isAdmin()) S.settings = (await sb.from("pl_settings").select("*").eq("id", 1).single()).data;
+  // রিফ্রেশ করলেও একই পেজে থাকবে
+  const [ht, hid] = location.hash.replace(/^#/, "").split("/");
+  if (ht && ht !== "new" && ht !== "edit") { S.tab = ht; if (hid) S.lotId = hid; }
+  if (LOT_TABS.includes(S.tab) && !S.lotId) S.tab = "lots";
+  history.replaceState({ tab: S.tab || "lots", lotId: S.lotId }, "", navHash());
   render();
 }
 
@@ -758,7 +763,26 @@ function bindLotTabs(main) {
     main.querySelectorAll(".pl-only").forEach(e => e.style.display = k === "pl" ? "" : "none");
   });
 }
-function go(tab, lotId) { S.tab = tab; if (lotId !== undefined && lotId !== S.lotId) { S.lotId = lotId; S.lotTab = "pl"; } render(); window.scrollTo(0, 0); }
+// ব্রাউজার/ফোনের Back বোতাম যেন আগের পেজে যায়
+const LOT_TABS = ["lot", "receive", "edit"];
+const navHash = () => "#" + S.tab + (LOT_TABS.includes(S.tab) && S.lotId ? "/" + S.lotId : "");
+function go(tab, lotId, noPush) {
+  S.tab = tab; if (lotId !== undefined && lotId !== S.lotId) { S.lotId = lotId; S.lotTab = "pl"; }
+  if (!noPush && location.hash !== navHash()) history.pushState({ tab: S.tab, lotId: S.lotId }, "", navHash());
+  render(); window.scrollTo(0, 0);
+}
+function closeOverlay() {
+  const m = document.querySelector(".modal"); if (m) { m.remove(); return true; }
+  const t = document.querySelector(".pg-t tr.open"); if (t) { document.getElementById("psheet-bg")?.click(); return true; }
+  const sh = document.getElementById("shell"); if (sh && sh.classList.contains("open")) { sh.classList.remove("open"); return true; }
+  return false;
+}
+window.addEventListener("popstate", (e) => {
+  if (!S.me) return;
+  if (closeOverlay()) { history.pushState({ tab: S.tab, lotId: S.lotId }, "", navHash()); return; }
+  const st = e.state || {};
+  go(st.tab || "lots", st.lotId, true);
+});
 
 // ---------- lots list (dashboard) ----------
 async function viewLots(main) {
