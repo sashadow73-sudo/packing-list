@@ -533,6 +533,10 @@
   .lnmbox label{margin:0;white-space:nowrap;font-weight:700;font-size:15px}
   .lnmbox input{flex:1;font-size:16px;font-weight:600}
   @media screen and (max-width:860px){ .lnmbox{flex-direction:column;align-items:stretch;gap:4px} }
+
+  .lchips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+  .lchips .tag,.lchips .rb{margin:0}
+  .lchips .lsup{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 0;min-width:70px}
 </style>
 </head>
 <body>
@@ -804,8 +808,8 @@ async function viewLots(main) {
     const box = main.querySelector("#list");
     box.style.display = rows.length ? "" : "block";
     box.innerHTML = rows.length ? rows.map(l => `<div class="card lot ${l.brand.toLowerCase()}" data-id="${l.id}">
-        <div class="row"><span class="ln">${l.ship_mode === "sea" ? "🚢" : l.ship_mode === "air" ? "✈️" : "🚚"} ${(l.title || "").trim() ? `<b class="lnm">${esc(l.title)}</b> ` : ""}<span class="ltr">${l.lot_no ? esc(l.lot_no) : esc(lotLabel(l))}</span>${!(l.title || "").trim() && prodNames(l.pl_lot_items) ? `<span class="lpn"> · ${esc(prodNames(l.pl_lot_items))}</span>` : ""}</span><span class="sp"></span>${l.locked ? `<span class="rb lockb">🔒 সম্পন্ন</span>` : `<span class="tag ${l.status}">${STATUS[l.status]}</span>`}</div>
-        <div style="margin-top:8px"><span class="bchip ${l.brand.toLowerCase()}">${esc(l.brand)}</span> ${shipChip(l.ship_mode)}${l.supplier ? ` <span class="mute">· ${esc(l.supplier)}</span>` : ""}</div>
+        <div class="row"><span class="ln">${l.ship_mode === "sea" ? "🚢" : l.ship_mode === "air" ? "✈️" : "🚚"} ${(l.title || "").trim() ? `<b class="lnm">${esc(l.title)}</b> ` : ""}<span class="ltr">${l.lot_no ? esc(l.lot_no) : esc(lotLabel(l))}</span>${!(l.title || "").trim() && prodNames(l.pl_lot_items) ? `<span class="lpn"> · ${esc(prodNames(l.pl_lot_items))}</span>` : ""}</span></div>
+        <div class="lchips">${l.locked ? `<span class="rb lockb">🔒 সম্পন্ন</span>` : `<span class="tag ${l.status}">${STATUS[l.status]}</span>`}<span class="bchip ${l.brand.toLowerCase()}">${esc(l.brand)}</span>${shipChip(l.ship_mode)}${l.supplier ? `<span class="mute lsup">${esc(l.supplier)}</span>` : ""}</div>
         ${rcvBadge(l) ? `<div style="margin-top:8px">${rcvBadge(l)}</div>` : ""}
         <div class="meta"><span><b>${pcs(l)}</b> পিস</span><span><b>${l.pl_lot_items.filter(i => i.line_type !== "extra").length}</b> লাইন</span><span class="sp"></span><span class="mute">${new Date(l.created_at).toLocaleDateString(LOC())}</span></div>
       </div>`).join("")
