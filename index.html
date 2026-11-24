@@ -779,7 +779,7 @@ function render() {
       <div class="nav">${tabs.map(([k, ic, t]) => `<button data-t="${k}" class="${active(k) ? "on" : ""}"><span class="ic">${ic}</span>${t}</button>`).join("")}</div>
       <div style="margin-top:auto">
         <div style="margin-bottom:8px">${langSwitch(true)}</div>
-        <div class="thsw notrans" style="margin-bottom:10px">${[["auto", "🎨 অটো"], ["lantern", "🏮 লণ্ঠন"], ["kido", "Kido"], ["zapai", "Zapai"], ["default", "সবুজ"]].map(([k, t]) => `<button data-th="${k}" class="${themePref() === k ? "on" : ""}">${t}</button>`).join("")}</div>
+        ${!isSuper() ? "" : `<div class="thsw notrans" style="margin-bottom:10px">${[["auto", "🎨 অটো"], ["lantern", "🏮 লণ্ঠন"], ["kido", "Kido"], ["zapai", "Zapai"], ["default", "সবুজ"]].map(([k, t]) => `<button data-th="${k}" class="${themePref() === k ? "on" : ""}">${t}</button>`).join("")}</div>`}
         <div class="me" style="margin-top:0"><span class="av">${esc(nm.trim().charAt(0).toUpperCase())}</span>
           <div><div class="nm">${esc(nm)}</div><div class="rl">${roleLabel(S.me)}${S.me.brand ? " · " + esc(S.me.brand) : ""}</div></div></div>
         <button class="out" id="logout">⎋ লগআউট</button>
@@ -870,7 +870,10 @@ function draftDebounce(fn) { let tm; return () => { clearTimeout(tm); tm = setTi
 // থিম প্রতিটা ইউজারের জন্য আলাদা মনে রাখা হয় (একই কম্পিউটারে অন্যজন লগইন করলে তার নিজের থিম)
 const themeKey = () => "pl_theme_" + (S.me?.id || "x");
 function themePref() { try { return localStorage.getItem(themeKey()) || "auto"; } catch { return "auto"; } }
-function themeNow() { const p = themePref(); if (p !== "auto") return p; return S.me?.brand === "Kido" ? "kido" : S.me?.brand === "Zapai" ? "zapai" : isSuper() ? "lantern" : "default"; }
+function themeNow() {
+  // কোম্পানি অ্যাডমিন আর স্টাফ সবসময় নিজের ব্র্যান্ডের থিমে; থিম বদলাতে পারেন শুধু সুপার অ্যাডমিন
+  if (!isSuper()) return S.me?.brand === "Kido" ? "kido" : S.me?.brand === "Zapai" ? "zapai" : "default";
+  const p = themePref(); if (p !== "auto") return p; return S.me?.brand === "Kido" ? "kido" : S.me?.brand === "Zapai" ? "zapai" : isSuper() ? "lantern" : "default"; }
 function applyTheme() {
   const t = themeNow();
   document.body.classList.remove("th-kido", "th-zapai", "th-lantern"); if (t !== "default") document.body.classList.add("th-" + t);
