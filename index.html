@@ -792,8 +792,9 @@ function render() {
     </div>
   </div>`;
   applyTheme();
-  $app.querySelectorAll("[data-th]").forEach(b => b.onclick = () => { try { localStorage.setItem("pl_theme", b.dataset.th); } catch {} render(); });
-  document.getElementById("logout").onclick = async () => { await sb.auth.signOut(); S.me = null; showLogin(); };
+  $app.querySelectorAll("[data-th]").forEach(b => b.onclick = () => { try { localStorage.setItem(themeKey(), b.dataset.th); localStorage.removeItem("pl_theme"); } catch {} render(); });
+  document.getElementById("logout").onclick = async () => {
+    document.body.classList.remove("th-kido", "th-zapai", "th-lantern"); await sb.auth.signOut(); S.me = null; showLogin(); };
   const shell = document.getElementById("shell");
   document.getElementById("hamb").onclick = () => shell.classList.add("open");
   document.getElementById("scrim").onclick = () => shell.classList.remove("open");
@@ -866,7 +867,9 @@ function draftBanner(t) { return `<div class="draftbox no-print"><span>📝 আ�
 function draftDebounce(fn) { let tm; return () => { clearTimeout(tm); tm = setTimeout(fn, 500); }; }
 
 // ---------- থিম: Kido (কালো + নীল), Zapai (কমলা), সাধারণ (সবুজ) ----------
-function themePref() { try { return localStorage.getItem("pl_theme") || "auto"; } catch { return "auto"; } }
+// থিম প্রতিটা ইউজারের জন্য আলাদা মনে রাখা হয় (একই কম্পিউটারে অন্যজন লগইন করলে তার নিজের থিম)
+const themeKey = () => "pl_theme_" + (S.me?.id || "x");
+function themePref() { try { return localStorage.getItem(themeKey()) || "auto"; } catch { return "auto"; } }
 function themeNow() { const p = themePref(); if (p !== "auto") return p; return S.me?.brand === "Kido" ? "kido" : S.me?.brand === "Zapai" ? "zapai" : isSuper() ? "lantern" : "default"; }
 function applyTheme() {
   const t = themeNow();
