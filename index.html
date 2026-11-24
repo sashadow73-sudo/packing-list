@@ -577,6 +577,8 @@
   body.th-zapai .side .nav button.on{background:#fff;color:#c2410c}
   body.th-zapai input:focus,body.th-zapai select:focus,body.th-zapai textarea:focus{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.15)}
 
+  /* ===== 🏮 লণ্ঠন থিম (শুধু স্ক্রিনে — প্রিন্টে সাধারণ সাদা কাগজ) ===== */
+  @media screen{
   /* ===== 🏮 লণ্ঠন থিম ===== */
   .thsw{grid-template-columns:repeat(5,auto)!important}
   body.th-lantern{--bg:#0f0d0b;--card:#1a1714;--ink:#f3efe9;--mute:#a39a90;--line:#2e2924;--pri:#d97706;--pri2:#f59e0b;--sh:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);color-scheme:dark}
@@ -621,7 +623,7 @@
   body.th-lantern .si.t1,body.th-lantern .si.t2,body.th-lantern .si.t3,body.th-lantern .si.t4,body.th-lantern .si.t5{background:#2a2116}
   body.th-lantern .pimg{background:#fff}
   @media screen and (max-width:860px){ body.th-lantern .side{background:radial-gradient(140% 60% at 0% 40%,#2a1d10 0%,#14100c 50%,#0b0908 100%)} }
-  @media print{ body.th-lantern{--bg:#fff;--card:#fff;--ink:#111;--mute:#555;--line:#ddd;color-scheme:light} body.th-lantern :is(.card,th,td,.pg-t th){background:#fff!important;color:#111!important} }
+  }
 
   .expbox{display:grid;grid-template-columns:1.4fr 1fr;gap:6px 12px;margin-top:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 12px}
   .expbox label{margin-top:0}
