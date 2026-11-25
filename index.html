@@ -2453,7 +2453,6 @@ async function cargoLoad() {
   return { cos, bills, pays };
 }
 async function viewCargo(main) {
-  if (!isSuper()) return viewCargoBrand(main);
   const D = await cargoLoad();
   if (!D.cos.length) {
     main.innerHTML = `<div class="card cg-empty"><h2>🚢 কার্গো বিলের খাতা</h2><p class="mute">যেসব কোম্পানি দিয়ে মাল আনান, আগে তাদের যোগ করুন। তারপর শিট থেকে বিল পেস্ট করবেন, আর টাকা দিলে লিখবেন — বাকি বা অগ্রিম নিজে থেকে হিসাব হবে।</p><button class="btn" id="coadd">+ কার্গো কোম্পানি যোগ করুন</button></div>`;
@@ -2610,7 +2609,6 @@ function cargoImport(c, cos) {
 }
 async function viewCargoBill(main) {
   if (!S.cargoBill) { go("cargo", undefined, true); return; }
-  if (!isSuper()) return viewCargoBillBrand(main);
   const [bill, cos, lots] = await Promise.all([
     q(sb.from("pl_cargo_bills").select("*").eq("id", S.cargoBill).single()),
     q(sb.from("pl_cargo_cos").select("id,name").order("created_at")),
