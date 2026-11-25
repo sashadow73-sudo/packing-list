@@ -2471,6 +2471,11 @@ async function trkIndex() {
   lots.forEach(l => String(l.lot_no || "").split(/[,\s/;|]+/).map(normTrk).filter(t => t.length >= 6).forEach(t => { if (!m[t]) m[t] = l; }));
   return { lots, find: (t) => m[normTrk(t)] || null };
 }
+// লট নম্বর অনুযায়ী ক্রম (746 < 747 < 760), সংখ্যা না হলে লেখা অনুযায়ী
+const lotNum = (x) => { const m = String(x || "").match(/\d+/); return m ? +m[0] : Infinity; };
+const cmpLot = (a, b) => lotNum(a) - lotNum(b) || String(a).localeCompare(String(b));
+// খাতার ক্রম: তারিখ → একই দিনে আগে বিল (লট নম্বর অনুযায়ী) → তারপর পেমেন্ট
+function cgEvCmp(a, b) { return String(a.d || "").localeCompare(String(b.d || "")) || (a.k === b.k ? 0 : a.k === "b" ? -1 : 1) || (a.k === "b" ? cmpLot(a.b.cargo_lot, b.b.cargo_lot) : 0) || String(a.t).localeCompare(String(b.t)); }
 async function cargoLoad() {
   const [cos, bills, lines, pays] = await Promise.all([
     q(sb.from("pl_cargo_cos").select("*").order("created_at")),
@@ -2500,12 +2505,12 @@ async function viewCargo(main) {
   if (!D.cos.find(c => c.id === S.cargoCo)) S.cargoCo = D.cos[0].id;
   const c = D.cos.find(x => x.id === S.cargoCo);
   // খাতা: আগের হিসাব → বিল আর পেমেন্ট তারিখ অনুযায়ী
-  const ev = [...c.bills.map(b => ({ k: "b", d: b.bill_date, t: b.created_at, b })), ...c.pays.map(p => ({ k: "p", d: p.paid_on, t: p.created_at, p }))].sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t));
+  const ev = [...c.bills.map(b => ({ k: "b", d: b.bill_date, t: b.created_at, b })), ...c.pays.map(p => ({ k: "p", d: p.paid_on, t: p.created_at, p }))].sort(cgEvCmp);
   let run = num(c.opening_balance);
-  const rows = ev.map(e => { run += e.k === "b" ? e.b.counted : -num(e.p.amount); return { ...e, run }; });
+  const rows = ev.map(e => { run += e.k === "b" ? e.b.counted : -num(e.p.amount); return { ...e, run }; }).reverse(); // নতুনটা উপরে
   main.innerHTML = `
   <div class="cg-head row"><span class="sp"></span><button class="btn ghost sm" id="coadd">+ নতুন কার্গো কোম্পানি</button></div>
-  <div class="cg-cos">${D.cos.map(x => `<button class="cg-co ${x.id === c.id ? "on" : ""}" data-co="${x.id}"><b>${esc(x.name)}</b><span class="mute">${x.bills.length}টা বিল${x.bills.length ? ` · শেষ লট ${esc(x.bills[x.bills.length - 1].cargo_lot)}` : ""}</span><span class="cg-bal">${balTxt(x.balance)}</span></button>`).join("")}</div>
+  <div class="cg-cos">${D.cos.map(x => `<button class="cg-co ${x.id === c.id ? "on" : ""}" data-co="${x.id}"><b>${esc(x.name)}</b><span class="mute">${x.bills.length}টা বিল${x.bills.length ? ` · শেষ লট ${esc([...x.bills].sort((a, b) => cmpLot(a.cargo_lot, b.cargo_lot)).pop().cargo_lot)}` : ""}</span><span class="cg-bal">${balTxt(x.balance)}</span></button>`).join("")}</div>
   <div class="card">
     <div class="row cg-cohead"><h2 style="margin:0">${esc(c.name)}</h2>${c.phone ? `<a class="mute" href="tel:${esc(c.phone)}">📞 ${esc(c.phone)}</a>` : ""}<button class="btn ghost sm" id="coed" title="কোম্পানির তথ্য">✏️</button><span class="sp"></span>
       <button class="btn ghost sm" id="cpay">💵 টাকা দিলাম</button><button class="btn ghost sm" id="cbill">+ একটা বিল</button><button class="btn sm" id="cimp">📋 শিট থেকে পেস্ট</button></div>
@@ -2519,9 +2524,9 @@ async function viewCargo(main) {
     <div class="tw"><table class="cg-led">
       <thead><tr><th>তারিখ</th><th>বিবরণ</th><th class="n">বিল</th><th class="n">দিয়েছি</th><th class="n">ব্যালান্স</th><th></th></tr></thead>
       <tbody>
-        <tr class="cg-open"><td>${bnDate(c.opening_date) || "—"}</td><td>আগের হিসাব (খাতা শুরুর সময়)</td><td></td><td></td><td class="n">${balTxt(num(c.opening_balance))}</td><td></td></tr>
         ${rows.map(r => r.k === "b" ? `<tr class="cg-b" data-bill="${r.b.id}"><td>${bnDate(r.d)}</td><td><a href="#">📦 বিল · লট ${esc(r.b.cargo_lot)}</a> <span class="mute">· ${r.b.lines.length} কার্টন${r.b.ship_mode ? " · " + SHIP[r.b.ship_mode] : ""}</span>${r.b.hold.length ? ` <span class="cg-chip hold">⏸ ${r.b.hold.length} আটকে</span>` : ""}${r.b.pend.length ? ` <span class="cg-chip pend">⏳ ${r.b.pend.length} বিল আসেনি</span>` : ""}</td><td class="n">${tk(r.b.counted)}</td><td></td><td class="n">${balTxt(r.run)}</td><td></td></tr>`
           : `<tr data-pay="${r.p.id}"><td>${bnDate(r.d)}</td><td>💵 টাকা দিলাম${r.p.method ? ` <span class="mute">· ${esc(r.p.method)}</span>` : ""}${r.p.note ? ` <span class="mute">· ${esc(r.p.note)}</span>` : ""}</td><td></td><td class="n cg-paid">${tk(num(r.p.amount))}</td><td class="n">${balTxt(r.run)}</td><td><button class="btn ghost sm cg-pdel" title="মুছুন">🗑</button></td></tr>`).join("")}
+        <tr class="cg-open"><td>${bnDate(c.opening_date) || "—"}</td><td>আগের হিসাব (খাতা শুরুর সময়)</td><td></td><td></td><td class="n">${balTxt(num(c.opening_balance))}</td><td></td></tr>
       </tbody></table></div>
     <p class="mute cg-note">আটকে রাখা আর বিল-না-আসা কার্টনের টাকা খাতায় ধরা হয় না। বিলে গিয়ে "✅ ঠিক" করলে তখন যোগ হবে।</p>
   </div>`;
@@ -2774,7 +2779,7 @@ async function viewCargoBrand(main) {
   if (!cos.length) { main.innerHTML = `<div class="card cg-empty"><h2>🚢 কার্গো বিল</h2><p class="mute">${esc(B)}-র কোনো কার্টন এখনো কার্গো বিলে বসানো হয়নি। সুপার অ্যাডমিন বিলে কার্টনের পাশে ব্র্যান্ড বসালে এখানে দেখাবে।</p></div>`; return; }
   if (!cos.find(c => c.id === S.cargoCo)) S.cargoCo = cos[0].id;
   const c = cos.find(x => x.id === S.cargoCo);
-  const bills = [...c.bills].sort((a, b) => (b.bill_date + b.created_at).localeCompare(a.bill_date + a.created_at));
+  const bills = [...c.bills].sort((a, b) => String(b.bill_date).localeCompare(String(a.bill_date)) || cmpLot(b.cargo_lot, a.cargo_lot));
   const ctn = bills.reduce((a, b) => a + b.lines.length, 0);
   main.innerHTML = `
   <div class="cg-cos">${cos.map(x => `<button class="cg-co ${x.id === c.id ? "on" : ""}" data-co="${x.id}"><b>${esc(x.name)}</b><span class="mute">${x.bills.length}টা বিল</span><span class="cg-bal">${tk(x.billed)}</span></button>`).join("")}</div>
